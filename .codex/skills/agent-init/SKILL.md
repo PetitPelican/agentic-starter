@@ -1,9 +1,9 @@
 ---
 name: agent-init
 description: >
-  Initialise la structure agentic-starter d'un nouveau projet.
+  Initialise la structure Codex/agentic-starter d'un nouveau projet.
   Scanne tous types de fichiers, détecte la stack, suggère MCPs/CLIs, pose 6 questions,
-  personnalise CLAUDE.md (rôle, règles adaptées), supprime les agents non pertinents,
+  personnalise AGENTS.md (rôle, règles adaptées), supprime les agents non pertinents,
   pré-remplit les fichiers mémoire.
   Trigger: /agent-init ou "initialise ce projet"
 ---
@@ -12,7 +12,7 @@ description: >
 
 ## Prérequis
 
-Le dossier `.claude/` doit être présent dans le projet.
+Le dossier `.codex/` doit être présent dans le projet.
 
 **Nouveau projet (répertoire vide) :**
 ```bash
@@ -23,16 +23,16 @@ git clone https://github.com/PetitPelican/agentic-starter.git .
 ```bash
 # Linux / Mac
 git clone https://github.com/PetitPelican/agentic-starter.git /tmp/agentic-starter
-cp -r /tmp/agentic-starter/.claude ./
+cp -r /tmp/agentic-starter/.codex ./
 rm -rf /tmp/agentic-starter
 
 # Windows PowerShell
 git clone https://github.com/PetitPelican/agentic-starter.git $env:TEMP\agentic-starter
-Copy-Item -Recurse "$env:TEMP\agentic-starter\.claude" ".\.claude"
+Copy-Item -Recurse "$env:TEMP\agentic-starter\.codex" ".\.codex"
 Remove-Item -Recurse -Force "$env:TEMP\agentic-starter"
 ```
 
-Si `.claude/` est absent, affiche ces instructions et arrête.
+Si `.codex/` est absent, affiche ces instructions et arrête.
 
 ---
 
@@ -40,11 +40,11 @@ Si `.claude/` est absent, affiche ces instructions et arrête.
 
 Avant de démarrer, détecte si c'est un projet nouveau ou existant :
 - **Projet existant** : présence de fichiers de code (`src/`, `app/`, `*.py`, `*.ts`, etc.) OU d'un historique git (`git log` retourne des commits)
-- **Nouveau projet** : répertoire quasi-vide (uniquement `.claude/`, `CLAUDE.md`, `.gitignore`, `README.md`)
+- **Nouveau projet** : répertoire quasi-vide (uniquement `.codex/`, `AGENTS.md`, `.gitignore`, `README.md`)
 
 En mode **projet existant** :
-- Ne pas modifier les fichiers qui existent déjà hors de `.claude/`
-- Ne pas écraser un `CLAUDE.md` déjà personnalisé (vérifier si `[PROJECT_NAME]` est encore présent)
+- Ne pas modifier les fichiers qui existent déjà hors de `.codex/`
+- Ne pas écraser un `AGENTS.md` déjà personnalisé (vérifier si `[PROJECT_NAME]` est encore présent)
 - Pour les fichiers mémoire : ne créer que ceux qui n'existent pas encore
 - Signaler à l'utilisateur ce qui existait déjà vs ce qui a été ajouté
 
@@ -129,7 +129,7 @@ Pose chaque question une par une. Attends la réponse avant de continuer.
 **Q1 — Nom et description**
 "Quel est le nom de ce projet et en une phrase, qu'est-ce qu'il fait ?"
 
-**Q2 — Rôle de Claude**
+**Q2 — Rôle de l'agent**
 "Dans ce projet, quel rôle dois-je jouer ?" Propose des options selon le scan :
 - CTO / Tech Lead (projets produit, SaaS, fullstack)
 - Data Engineer / Architecte data (projets pipeline, warehouse)
@@ -182,7 +182,7 @@ Si un service est détecté mais son MCP n'est pas dans `.mcp.json`, suggère-le
 
 ## Phase 3 — Personnalisation
 
-### CLAUDE.md
+### AGENTS.md
 
 **Section Rôle** — remplacer :
 - `[PROJECT_NAME]` → nom du projet
@@ -264,7 +264,7 @@ Pour chaque MCP suggéré mais absent de `.mcp.json`, générer le bloc JSON à 
 Vérifie et corrige les permissions pour éviter les prompts d'approbation à chaque action.
 
 ### `settings.local.json` (projet)
-Vérifie que `.claude/settings.local.json` contient `"defaultMode": "bypassPermissions"` dans `permissions`.
+Vérifie que `.codex/settings.local.json` contient `"defaultMode": "bypassPermissions"` dans `permissions`.
 - Si absent : l'ajouter
 - Si le fichier n'existe pas : le créer avec ce contenu minimal :
 ```json
@@ -275,7 +275,7 @@ Vérifie que `.claude/settings.local.json` contient `"defaultMode": "bypassPermi
 }
 ```
 
-### `~/.claude/settings.json` (global)
+### `~/.codex/settings.json` (global)
 Vérifie que le fichier global contient aussi `"defaultMode": "bypassPermissions"`.
 - Si absent : proposer à l'utilisateur de l'ajouter (action sur le fichier global — demander confirmation)
 - Si le fichier n'existe pas : proposer de le créer
@@ -287,7 +287,7 @@ Vérifie que le fichier global contient aussi `"defaultMode": "bypassPermissions
 ## Résumé de fin
 
 En fin d'init, afficher :
-1. Ce qui a été personnalisé (CLAUDE.md, agents supprimés, memory pré-remplie)
+1. Ce qui a été personnalisé (AGENTS.md, agents supprimés, memory pré-remplie)
 2. MCPs à installer (commandes exactes)
 3. Prochaine action recommandée (`/memory-update` pour valider l'état initial)
 

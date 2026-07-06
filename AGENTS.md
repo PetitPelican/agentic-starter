@@ -1,9 +1,9 @@
-# [PROJECT_NAME] — Claude Code Context
+# [PROJECT_NAME] — Codex CLI Context
 
 <!-- ============================================================
      DÉTECTION D'INITIALISATION — NE PAS SUPPRIMER CE BLOC
      Si ce fichier contient encore "[PROJECT_NAME]", le projet
-     n'a pas été initialisé. Claude doit appliquer la règle ci-dessous.
+     n'a pas été initialisé. Codex doit appliquer la règle ci-dessous.
      ============================================================ -->
 
 > **RÈGLE SYSTÈME**
