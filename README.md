@@ -30,7 +30,7 @@ Après le clone, recharge la fenêtre pour que les assistants détectent les nou
 Dans Claude Code ou Codex, lance :
 
 ```text
-/agent-init
+/project-init
 ```
 
 L'agent va scanner ton projet, te poser les questions nécessaires, puis configurer automatiquement :
@@ -39,7 +39,7 @@ L'agent va scanner ton projet, te poser les questions nécessaires, puis configu
 - `AGENTS.md` pour le CLI Codex
 - les agents adaptés au type de projet
 - la mémoire projet dans `.memory/`
-- les skills `agent-init`, `memory-update`, `caveman` et `caveman-compress`
+- les skills `project-init`, `memory-update`, `caveman` et `caveman-compress`
 
 **Étape 4 — Coder**
 
@@ -85,9 +85,9 @@ Copy-Item "$env:TEMP\agentic-starter\.mcp.json.example" ".\.mcp.json.example"
 Remove-Item -Recurse -Force "$env:TEMP\agentic-starter"
 ```
 
-Puis recharge l'éditeur (`Shift + Ctrl + P` -> **Developer: Reload Window**) et lance `/agent-init`.
+Puis recharge l'éditeur (`Shift + Ctrl + P` -> **Developer: Reload Window**) et lance `/project-init`.
 
-> `agent-init` détecte automatiquement que le projet est existant et ajoute uniquement ce qui manque.
+> `project-init` détecte automatiquement que le projet est existant et ajoute uniquement ce qui manque.
 
 ---
 
@@ -98,7 +98,6 @@ Puis recharge l'éditeur (`Shift + Ctrl + P` -> **Developer: Reload Window**) et
 - `CLAUDE.md` — contexte projet pour Claude Code
 - `.claude/settings.json` — permissions et configuration partagées
 - `.claude/settings.local.json.example` — exemple de configuration locale
-- `.claude/agents/` — agents spécialisés
 - `.claude/skills/` — skills disponibles dans Claude Code
 
 ### Codex CLI
@@ -106,24 +105,17 @@ Puis recharge l'éditeur (`Shift + Ctrl + P` -> **Developer: Reload Window**) et
 - `AGENTS.md` — contexte projet pour Codex
 - `.codex/settings.json` — permissions et configuration partagées
 - `.codex/settings.local.json.example` — exemple de configuration locale
-- `.codex/agents/` — agents spécialisés
 - `.codex/skills/` — skills disponibles dans Codex
-
-### Agents disponibles
-
-| Catégorie | Agents |
-|---|---|
-| Dev | frontend, backend, mobile, db, auth, payments |
-| Data | sql, python, ingestion, transformation, orchestration |
-| API | routes, auth, docs |
-| Ops | build, qa, audit |
-| Audit | audits comportementaux, transversaux et qualité |
 
 ### Skills
 
-- `agent-init` — initialise le projet et adapte les fichiers de contexte
-- `agentic-upgrade` — migre un ancien projet Claude-only vers `agentic-starter`
+Tout passe par des **skills** (plus d'agents-personas) :
+
+- `project-init` — initialise le projet et adapte les fichiers de contexte
+- `project-upgrade` — migre un projet existant vers la dernière version du starter
 - `memory-update` — met à jour la mémoire projet
+- `publish-docs` — génère un site de documentation Quarto (HTML + Word/PDF) depuis la mémoire
+- `audit` — audit exhaustif du code (comportemental / transversal / qualité), rapport seul
 - `caveman` — mode ultra-compressé pour réduire les tokens
 - `caveman-compress` — compresse les fichiers mémoire
 
@@ -131,13 +123,18 @@ Puis recharge l'éditeur (`Shift + Ctrl + P` -> **Developer: Reload Window**) et
 
 La mémoire n'est plus stockée dans `.claude/`. Elle vit maintenant à la racine, dans `.memory/`, pour être partagée par Claude Code, Codex et les autres assistants.
 
+Taxonomie générique (un fichier = un axe), avec une frontière **public / privé** :
+
 - `.memory/MEMORY.md` — index de tous les fichiers mémoire
-- `.memory/state.md` — features faites, en cours et bloquées
-- `.memory/decisions.md` — décisions d'architecture
-- `.memory/architecture.md` — couches, flux de données et environnements
-- `.memory/data-model.md` — modélisation des données
-- `.memory/business.md` — règles métier, pricing et rôles
-- `.memory/clients.md` — onboarding, trial, billing et résiliation
+- `.memory/charter.md` — but, périmètre, stack, rôles, contexte métier _(public)_
+- `.memory/architecture.md` — composants, flux, modèle de données, conventions _(public)_
+- `.memory/rules.md` — règles métier, accès, contraintes _(public)_
+- `.memory/decisions.md` — journal des décisions (le pourquoi) _(public)_
+- `.memory/state.md` — fait / en cours / bloqué / à faire _(public)_
+- `.memory/operations.md` — 🔒 hébergement, déploiement, secrets, dépannage _(**privé — jamais publié**)_
+- `.memory/data-model.md` — modélisation détaillée _(conditionnel : projets data-lourds)_
+
+Les fichiers **publics** peuvent alimenter un site de doc via `/publish-docs` ; `operations.md` reste privé.
 
 ---
 

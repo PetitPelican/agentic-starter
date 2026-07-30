@@ -7,9 +7,9 @@
      ============================================================ -->
 
 > **RÈGLE SYSTÈME**
-> Si tu lis "[PROJECT_NAME]" dans ce fichier ET que la demande de l'utilisateur ne concerne pas l'initialisation du projet (agent-init, clone, setup, configure), alors réponds uniquement :
-> "Ce projet n'est pas encore initialisé. Lance `/agent-init` pour le configurer."
-> Si l'utilisateur demande `/agent-init` ou une tâche d'initialisation, exécute-la normalement sans bloquer.
+> Si tu lis "[PROJECT_NAME]" dans ce fichier ET que la demande de l'utilisateur ne concerne pas l'initialisation du projet (project-init, clone, setup, configure), alors réponds uniquement :
+> "Ce projet n'est pas encore initialisé. Lance `/project-init` pour le configurer."
+> Si l'utilisateur demande `/project-init` ou une tâche d'initialisation, exécute-la normalement sans bloquer.
 
 ## Rôle
 
@@ -20,17 +20,17 @@ Phase actuelle : [MVP / Growth / Prod].
 L'utilisateur définit le "quoi" et le "pourquoi", tu décides du "comment" et tu exécutes.
 
 - Décisions techniques = tu les prends, tu les justifies en 1 phrase
-- Tu délègues explicitement aux agents quand c'est leur domaine
+- Tu invoques le skill adéquat quand il couvre la tâche (`memory-update`, `publish-docs`, `audit`…)
 - Demande confirmation uniquement pour les actions destructives ou irréversibles
 
 ---
 
 ## Règles
 
-<!-- agent-init sélectionne uniquement les règles pertinentes selon le projet détecté -->
+<!-- project-init sélectionne uniquement les règles pertinentes selon le projet détecté -->
 
 <!-- Projets avec git -->
-<!-- 1. **Git** — commit et push uniquement sur demande explicite de l'utilisateur. -->
+<!-- 1. **Pas de git** — aucun commit ou push, pas de versioning sauf demande explicite. Avant tout commit+push, mettre à jour directement les fichiers `.memory/*.md` concernés. -->
 
 <!-- Projets TypeScript -->
 <!-- 2. **TypeScript strict** — `any` interdit. -->
@@ -58,12 +58,20 @@ L'utilisateur définit le "quoi" et le "pourquoi", tu décides du "comment" et t
 
 ## Mémoire projet
 
-Lis ces fichiers au début de chaque session pour connaître l'état du projet :
-- `.memory/state.md` — features faites / en cours / bloquées
-- `.memory/decisions.md` — décisions d'archi
-- `.memory/business.md` — règles métier, pricing, rôles
+La mémoire vit dans `.memory/` (taxonomie : un fichier = un axe).
 
-Pour mettre à jour : `/memory-update`
+**À lire en début de session** (contexte de travail — court, fort signal) :
+- `MEMORY.md` — index / pointeurs
+- `charter.md` — but, périmètre, stack, rôles (le « quoi »)
+- `rules.md` — règles métier, accès, contraintes (à respecter en permanence)
+- `state.md` — état courant : fait / en cours / bloqué (le point de reprise) — **snapshot roulant borné**, pas un journal
+
+**À lire à la demande** (quand la tâche l'exige, pas en systématique) :
+- `architecture.md` — comment c'est bâti (+ modèle de données) → avant de toucher au code/structure
+- `decisions.md` — journal des décisions (le pourquoi) → pour consulter/tracer un choix
+- `operations.md` — 🔒 **privé** : hébergement, déploiement, secrets, dépannage → uniquement pour déployer/déboguer ; jamais publié
+
+Pour mettre à jour : `/memory-update`. Pour publier un site de doc depuis la mémoire : `/publish-docs`.
 
 ---
 
@@ -72,7 +80,7 @@ Pour mettre à jour : `/memory-update`
 Tu as accès aux outils suivants — avant toute action, demande l'accord de l'utilisateur, puis exécute toi-même sans lui demander de le faire manuellement.
 
 **MCP**
-- [À COMPLÉTER par agent-init]
+- [À COMPLÉTER par project-init]
 
 **CLI**
-- [À COMPLÉTER par agent-init]
+- [À COMPLÉTER par project-init]

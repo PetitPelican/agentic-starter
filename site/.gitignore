@@ -1,0 +1,17 @@
+# Le site est GÉNÉRÉ depuis `_content/` : on ne versionne que les sources.
+# Whitelist : tout ignorer, sauf les fichiers sources ci-dessous.
+/*
+!/_content
+!/_assets
+!/.gitignore
+!/site.config.yml
+!/build_site.py
+!/publish.py
+!/requirements.txt
+!/README.md
+
+# (Généré, donc ignoré : _site/, _quarto.yml, theme.scss, <domaine>/*.qmd,
+#  <domaine>/img/, <domaine>/dossier.*, *_site.zip)
+
+/.quarto/
+**/*.quarto_ipynb

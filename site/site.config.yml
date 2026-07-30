@@ -1,0 +1,17 @@
+# Configuration du site de doc — rempli par `/publish-docs init`, éditable à la main.
+title: "Documentation"                 # nom affiché (sidebar, exports)
+tagline: "Documentation technique"     # sous-titre (tagline de la sidebar)
+logo_letter: "D"                       # 1 lettre du logo (pastille dégradée)
+preset: generic                        # data | web | api | generic  (jeu de sections)
+
+# domains: laisser commenté = auto-détecté depuis les sous-dossiers de _content/
+# domains:
+#   - example
+
+deploy:
+  target: zip                          # azure | ghpages | zip | none
+  azure:
+    storage: ""                        # nom du compte de stockage (static website)
+    resource_group: ""
+  ghpages:
+    branch: gh-pages

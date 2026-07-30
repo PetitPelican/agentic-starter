@@ -1,0 +1,12 @@
+digraph flux {
+  rankdir=LR; bgcolor="transparent"; pad=0.35; nodesep=0.45; ranksep=0.75;
+  fontname="Helvetica"; splines=spline;
+  node [shape=box, style="filled,rounded", fontname="Helvetica", margin="0.16,0.10", penwidth=1.5];
+  edge [fontname="Helvetica", fontsize=10, color="#64748B", arrowsize=0.9];
+  src  [label="Source",     fillcolor="#F1F5F9", color="#94A3B8"];
+  proc [label="Traitement", fillcolor="#EAF1FE", color="#2563EB"];
+  db   [label="Stockage",   fillcolor="#FEF9E7", color="#B8901B"];
+  api  [label="API",        fillcolor="#F1F5F9", color="#64748B"];
+  ui   [label="Frontend",   fillcolor="#FEFCE8", color="#CA8A04"];
+  src -> proc -> db -> api -> ui;
+}

@@ -1,0 +1,7 @@
+---
+title: "En cours"
+---
+
+_Ce qui est en cours de traitement, par domaine. Depuis `.memory/state.md` (section « En cours »)._
+
+- _(à remplir)_

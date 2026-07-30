@@ -1,0 +1,15 @@
+---
+title: "Objectifs & Périmètre"
+---
+
+@@EXPORT:example@@
+
+## Résumé
+
+_Page exemple — remplacée par `/doc-site refresh` à partir de `.memory/charter.md`._
+
+Décrire ici l'**objectif** du domaine, son **périmètre** (dans / hors), et le **contexte métier**.
+
+- **Objectif** : …
+- **Dans le périmètre** : …
+- **Hors périmètre** : …

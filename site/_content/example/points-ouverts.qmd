@@ -1,0 +1,10 @@
+---
+title: "Points ouverts"
+---
+
+_Page exemple — alimentée par `/doc-site refresh` depuis `.memory/state.md` et `.memory/decisions.md`._
+
+| Sujet | Statut |
+|---|---|
+| Exemple de point à trancher | [Ouvert]{.badge-wait} |
+| Exemple de point résolu | [Fait]{.badge-done} |

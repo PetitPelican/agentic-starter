@@ -1,0 +1,9 @@
+---
+title: "Journal des modifications"
+---
+
+_Dernières modifications, datées et par domaine. Alimenté par `/doc-site refresh` depuis `.memory/state.md`._
+
+| Date | Domaine | Modification | Statut |
+|---|---|---|---|
+| YYYY-MM-DD | example | Création de la doc | [Fait]{.badge-done} |

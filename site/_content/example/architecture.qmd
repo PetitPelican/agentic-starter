@@ -1,0 +1,23 @@
+---
+title: "Architecture & flux"
+---
+
+_Page exemple — remplacée par `/doc-site refresh` à partir de `.memory/architecture.md`._
+
+## Vue d'ensemble
+
+Le schéma ci-dessous illustre l'enchaînement des composants (source `.dot` versionnée dans `_content/example/_diagrams/`, rendue en SVG pour le web et en PNG pour l'export).
+
+::: {.column-page-right}
+![Flux applicatif (exemple).](img/flux.svg){#fig-flux fig-align="center"}
+:::
+
+## Composants
+
+| Composant | Rôle |
+|---|---|
+| Source | Origine des données / événements |
+| Traitement | Transformation / logique métier |
+| Stockage | Persistance |
+| API | Exposition |
+| Frontend | Restitution |

@@ -1,6 +1,8 @@
 # Modélisation des données — [PROJECT_NAME]
 _Dernière mise à jour : YYYY-MM-DD_
 
+> **Conditionnel** : ne garder ce fichier que pour un projet **data-lourd** (entrepôt, ETL). Sinon, décrire le modèle en section de `architecture.md` et supprimer ce fichier. **Public** — alimente la page « Architecture ».
+
 ## Couches
 
 <!-- Adapter selon le projet : supprimer les couches non utilisées -->

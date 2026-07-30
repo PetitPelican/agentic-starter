@@ -2,14 +2,14 @@ Agis comme agent mémoire du projet. Ton rôle : maintenir les fichiers `.memory
 
 ## Étapes
 
-1. **Lis les fichiers mémoire actuels**
-   - `.memory/MEMORY.md` — index pour savoir quels fichiers existent
-   - `.memory/state.md`
-   - `.memory/decisions.md`
-   - `.memory/business.md`
-   - `.memory/architecture.md` (si présent)
-   - `.memory/data-model.md` (si présent)
-   - `.memory/clients.md` (si présent)
+1. **Lis les fichiers mémoire actuels** (cf. `.memory/MEMORY.md` pour l'index)
+   - `.memory/charter.md` — but, périmètre, stack, rôles, contexte
+   - `.memory/architecture.md` — composants, flux, modèle de données, conventions
+   - `.memory/rules.md` — règles métier, accès, contraintes
+   - `.memory/decisions.md` — journal des décisions (le pourquoi)
+   - `.memory/state.md` — état courant
+   - `.memory/operations.md` — 🔒 privé (hébergement, secrets, dépannage)
+   - `.memory/data-model.md` (si présent — projets data-lourds)
 
 2. **Lis le git log depuis la dernière mise à jour**
    ```
@@ -23,17 +23,17 @@ Agis comme agent mémoire du projet. Ton rôle : maintenir les fichiers `.memory
    - Met à jour `state.md` directement avec ces observations
 
 4. **Pose des questions uniquement pour les ambiguïtés non déductibles** :
-   - Une décision d'archi ou une règle métier a-t-elle changé ? (si pas évident depuis les commits)
-   - Un changement de pricing, rôles, ou onboarding client ? (si non visible dans le code)
+   - Une décision d'archi a-t-elle changé ? (si pas évident depuis les commits)
+   - Une règle métier / d'accès / une contrainte a-t-elle changé ? (si non visible dans le code)
    - Ne pose pas de question si la réponse est déjà dans la conversation ou les commits
 
 5. **Mets à jour uniquement les sections concernées** dans les fichiers pertinents :
    - Changement de feature ou avancement → `state.md`
    - Nouvelle décision technique → `decisions.md`
-   - Changement pricing/rôles → `business.md`
-   - Changement architecture (nouvelle couche, nouveau service, nouveau flux) → `architecture.md`
-   - Nouvelle table, modification de schéma, changement de conventions → `data-model.md`
-   - Changement onboarding/billing → `clients.md`
+   - Nouvelle règle métier / d'accès / contrainte → `rules.md`
+   - But, périmètre, stack, rôles, contexte → `charter.md`
+   - Changement d'architecture (couche, service, flux, modèle de données) → `architecture.md` (ou `data-model.md` si data-lourd)
+   - Hébergement, déploiement, secrets, dépannage → `operations.md` (🔒 privé)
    - Nouveau fichier mémoire créé → ajouter une ligne dans `MEMORY.md`
 
 5. **Mets à jour la date** `_Dernière mise à jour_` dans chaque fichier modifié.
@@ -49,3 +49,8 @@ Agis comme agent mémoire du projet. Ton rôle : maintenir les fichiers `.memory
 - Reste concis — chaque ligne doit valoir son coût en tokens
 - Si l'utilisateur ne répond pas à une question, laisse la section inchangée
 - Ne crée jamais de nouveaux fichiers mémoire sans demander
+- **Bornage des fichiers chargés chaque session** (`charter`/`rules`/`state`/`MEMORY.md`) : ils doivent rester courts, sinon ils coûtent des tokens à chaque ouverture de session.
+  - `state.md` = **snapshot roulant, pas un journal** : garde fait récent / en cours / bloqué / point de reprise ; élague ou archive le terminé ancien (plafond ~1 écran). Si l'historique compte, il va dans `decisions.md` (append-only, lu à la demande), pas dans `state.md`.
+  - `MEMORY.md` = **pointeurs uniquement** (une ligne par fichier) ; jamais de prose accumulée.
+- Ne mets jamais de secret/token/clé/IP dans un fichier **public** ; ça va dans `operations.md` (privé)
+- Si un site de doc existe (`site/`), propose `/publish-docs refresh` en fin de mise à jour pour resynchroniser la doc publique depuis la mémoire

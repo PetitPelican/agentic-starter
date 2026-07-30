@@ -1,0 +1,7 @@
+---
+title: "Backlog"
+---
+
+_Ce qui reste à faire, priorisé par domaine. Depuis `.memory/state.md` (section « Bloqué / à faire »)._
+
+- _(à remplir)_

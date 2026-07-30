@@ -1,0 +1,9 @@
+# Dépendances Python du site de doc (installées par `/publish-docs setup`).
+# Quarto + Graphviz sont des binaires OS (voir /publish-docs setup), pas des paquets pip.
+matplotlib
+jupyter
+ipykernel
+nbclient
+nbformat
+graphviz
+pyyaml

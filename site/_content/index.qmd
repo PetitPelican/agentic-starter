@@ -1,0 +1,19 @@
+---
+title: ""
+page-layout: full
+toc: false
+---
+
+::: {.hero-banner}
+# @@TITLE@@
+
+@@TAGLINE@@
+:::
+
+## Domaines
+
+@@CARDS@@
+
+## Suivi du projet
+
+Vue transverse de l'avancement — dernières modifications, ce qui est en cours, et le backlog. Voir la section **Suivi**.
