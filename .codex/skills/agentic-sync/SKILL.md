@@ -65,9 +65,20 @@ au rôle ni aux règles métier personnalisés du projet :
 - **Règles** : si la règle git ou une règle générique a évolué dans le template, proposer le diff.
 Montrer chaque changement, appliquer après validation.
 
-### 4. Migrer la taxonomie mémoire (si dérive)
-Le script ne touche pas `.memory/`. Si le projet est sur l'ancienne taxonomie, migrer le **contenu**
-(non destructif, confirmer avant toute suppression). Mapping :
+### 4. Mémoire : proposer le CHOIX (rester ou migrer)
+Le script ne touche jamais `.memory/`. S'il détecte une taxonomie ancienne (fichiers comme
+`business.md`, `clients.md`, `overview.md`, `hosting.md`, `todo.md`, `troubleshooting.md`…), il le
+**signale** dans le rapport. **Poser explicitement le choix à l'utilisateur, ne rien migrer d'office** :
+
+- **(A) Garder la taxonomie mémoire actuelle.** Rien n'est modifié. Valable si le projet n'a pas de
+  site, ou si tu préfères ta structure. Limite : `/publish-docs refresh` mappe alors depuis les
+  fichiers existants, de façon moins nette (la frontière public/privé n'est pas garantie).
+- **(B) Migrer vers la nouvelle taxonomie** (`charter/architecture/rules/decisions/state` +
+  `operations` privé) — celle qui s'accorde avec le site (sections + pare-feu public/privé).
+
+Ne procéder à la migration **que si l'utilisateur choisit (B)**. Migration = **non destructive** :
+copier le contenu vers les nouveaux fichiers, faire relire, puis supprimer les anciens seulement
+après validation explicite. Mapping :
 
 | Ancien | → Nouveau |
 |---|---|

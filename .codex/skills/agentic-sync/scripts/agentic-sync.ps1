@@ -156,7 +156,25 @@ foreach ($rel in $RemovePaths) {
   }
 }
 
-# 4. Rappels : zones à réconcilier à la main (pilotées par le SKILL, hors script).
+# 4. Détection (read-only) d'une taxonomie mémoire ancienne -> remonte le CHOIX à faire.
+#    Ne lit que les NOMS de fichiers, ne touche à rien.
+$LegacyMem = @("business","clients","overview","hosting","todo","troubleshooting",
+               "db_architecture","ingestion_plan","lineage_old_db","pbi_measures","pbi_reports_specs")
+$MemDir = Join-Path $Project ".memory"
+if (Test-Path -LiteralPath $MemDir) {
+  $found = @()
+  foreach ($f in Get-ChildItem -Recurse -File -LiteralPath $MemDir -Filter *.md) {
+    $stem = [System.IO.Path]::GetFileNameWithoutExtension($f.Name).ToLowerInvariant()
+    if ($LegacyMem -contains $stem) { $found += $f.Name }
+  }
+  if ($found.Count -gt 0) {
+    Add-Manual ("MÉMOIRE : taxonomie ancienne détectée (" + (($found | Select-Object -Unique) -join ", ") +
+                ") -> CHOIX requis : (A) garder telle quelle, ou (B) migrer vers charter/architecture/rules/" +
+                "decisions/state/operations (celle du site). Voir étape 4 du SKILL. Rien migré d'office.")
+  }
+}
+
+# 5. Rappels : zones à réconcilier à la main (pilotées par le SKILL, hors script).
 foreach ($m in $ProjectOwned) { Add-Manual $m }
 
 Write-Host "Changements (mécaniques):"
