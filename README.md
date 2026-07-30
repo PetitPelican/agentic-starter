@@ -7,7 +7,7 @@
 - `.claude/` et `CLAUDE.md` pour Claude Code
 - `.codex/` et `AGENTS.md` pour le CLI Codex
 - `.memory/` à la racine pour une mémoire projet partagée entre les assistants
-- des agents spécialisés, des skills, des règles de permissions et un flux d'initialisation
+- des skills, des règles de permissions, un flux d'initialisation et un site de doc optionnel
 
 ---
 
@@ -33,13 +33,12 @@ Dans Claude Code ou Codex, lance :
 /project-init
 ```
 
-L'agent va scanner ton projet, te poser les questions nécessaires, puis configurer automatiquement :
+L'agent va te demander quel(s) assistant(s) tu utilises (Claude Code / Codex / les deux) et supprimer le harnais non retenu, scanner ton projet, te poser les questions nécessaires, puis configurer automatiquement :
 
-- `CLAUDE.md` pour Claude Code
-- `AGENTS.md` pour le CLI Codex
-- les agents adaptés au type de projet
+- le(s) fichier(s) de contexte conservé(s) : `CLAUDE.md` (Claude Code) et/ou `AGENTS.md` (Codex)
+- les règles adaptées au type de projet détecté
 - la mémoire projet dans `.memory/`
-- les skills `project-init`, `memory-update`, `caveman` et `caveman-compress`
+- optionnellement, un site de documentation Quarto (`/publish-docs`)
 
 **Étape 4 — Coder**
 
@@ -136,6 +135,13 @@ Taxonomie générique (un fichier = un axe), avec une frontière **public / priv
 
 Les fichiers **publics** peuvent alimenter un site de doc via `/publish-docs` ; `operations.md` reste privé.
 
+Les fichiers chargés à chaque session (`charter`, `rules`, `state`, `MEMORY.md`) sont volontairement courts ; `state.md` est un **snapshot roulant borné** (pas un journal). `architecture`, `decisions` et `operations` sont lus à la demande.
+
+### Site de documentation (optionnel)
+
+- `site/` — moteur Quarto piloté par `site/site.config.yml` (titre, preset `data`/`web`/`api`/`generic`, cible de déploiement `azure`/`ghpages`/`zip`/`none`).
+- `/publish-docs [setup|init|refresh|publish]` — installe les outils (Quarto/Graphviz), génère les pages depuis la mémoire **publique** vers `_content/`, produit un site HTML + livrables Word/PDF, déploie. Ne lit jamais `operations.md` ni les `.env*`.
+
 ---
 
 ## Configuration MCP
@@ -179,14 +185,9 @@ Copy-Item .codex/settings.local.json.example .codex/settings.local.json
 
 ## Contribuer
 
-Les templates d'agents sont dans :
-
-- `.claude/agents/`
-- `.codex/agents/`
-
-Les skills sont dans :
+Tout passe par des **skills** (les deux harnais sont maintenus en miroir) :
 
 - `.claude/skills/`
 - `.codex/skills/`
 
-Garde la mémoire projet dans `.memory/` afin qu'elle reste indépendante d'un assistant spécifique.
+Toute modification d'un skill doit être répercutée à l'identique dans les deux dossiers. Garde la mémoire projet dans `.memory/` afin qu'elle reste indépendante d'un assistant spécifique.
