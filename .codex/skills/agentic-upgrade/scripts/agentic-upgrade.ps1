@@ -1,4 +1,4 @@
-param(
+﻿param(
   [string]$ProjectRoot = ".",
   [string]$TemplateRoot = "",
   [string]$TemplateRepo = "https://github.com/PetitPelican/agentic-starter.git",
@@ -140,8 +140,8 @@ if ((Test-Path -LiteralPath $ClaudeMemory) -and -not (Test-Path -LiteralPath $Sh
 }
 
 Copy-DirectoryIfMissing (Join-Path $Template ".codex") (Join-Path $Project ".codex")
-Copy-DirectoryIfMissing (Join-Path $Template ".claude\skills\project-upgrade") (Join-Path $Project ".claude\skills\project-upgrade")
-Copy-DirectoryIfMissing (Join-Path $Template ".codex\skills\project-upgrade") (Join-Path $Project ".codex\skills\project-upgrade")
+Copy-DirectoryIfMissing (Join-Path $Template ".claude\skills\agentic-upgrade") (Join-Path $Project ".claude\skills\agentic-upgrade")
+Copy-DirectoryIfMissing (Join-Path $Template ".codex\skills\agentic-upgrade") (Join-Path $Project ".codex\skills\agentic-upgrade")
 Copy-FileIfMissing (Join-Path $Template ".mcp.json.example") (Join-Path $Project ".mcp.json.example")
 
 $AgentsPath = Join-Path $Project "AGENTS.md"

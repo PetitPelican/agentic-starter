@@ -110,8 +110,9 @@ Puis recharge l'éditeur (`Shift + Ctrl + P` -> **Developer: Reload Window**) et
 
 Tout passe par des **skills** (plus d'agents-personas) :
 
-- `project-init` — initialise le projet et adapte les fichiers de contexte
-- `project-upgrade` — migre un projet existant vers la dernière version du starter
+- `project-init` — initialise un **nouveau** projet (archi agentic, mémoire, site optionnel)
+- `agentic-upgrade` — onboarde un projet existant **sans** archi agentic (additif, ne casse rien)
+- `agentic-sync` — resynchronise un projet **déjà** agentic sur la dernière version du starter
 - `memory-update` — met à jour la mémoire projet
 - `publish-docs` — génère un site de documentation Quarto (HTML + Word/PDF) depuis la mémoire
 - `audit` — audit exhaustif du code (comportemental / transversal / qualité), rapport seul

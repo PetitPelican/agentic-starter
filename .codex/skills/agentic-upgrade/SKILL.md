@@ -1,13 +1,19 @@
 ---
-name: project-upgrade
+name: agentic-upgrade
 description: >
-  Migre un projet existant basé sur l'ancien claude-starter vers agentic-starter.
-  Utiliser quand un projet contient .claude/, CLAUDE.md, .claude/memory/ ou des
-  références claude-starter, et qu'il faut ajouter .codex/, AGENTS.md et .memory/
-  sans écraser les personnalisations du projet.
+  Onboarde un projet existant qui n'a PAS encore d'archi agentic (ou est sur l'ancien
+  claude-starter) : ajoute .codex/, AGENTS.md, .memory/ et les skills, en additif, sans
+  écraser les personnalisations. Pour un projet DÉJÀ agentic qu'on veut resynchroniser
+  sur la dernière version du starter, utiliser `agentic-sync` à la place.
 ---
 
 # Agentic Upgrade
+
+> **Quand l'utiliser** : projet existant **sans** archi agentic (aucun `.codex/`/`.memory/`,
+> ou ancien `claude-starter` avec `.claude/memory/`). Purement **additif** : *copy-if-missing*,
+> jamais d'écrasement.
+> Projet **déjà** agentic à remettre au niveau du starter courant (skills, moteur, fichiers
+> retirés/renommés) → c'est `agentic-sync`, pas ce skill.
 
 ## Objectif
 
@@ -28,19 +34,19 @@ Mettre à jour un projet existant vers la structure agentic-starter :
 
 2. Lancer le script en dry-run depuis la racine du projet à migrer :
    ```powershell
-   .\.claude\skills\project-upgrade\scripts\project-upgrade.ps1
+   .\.codex\skills\agentic-upgrade\scripts\agentic-upgrade.ps1
    ```
 
-   Si le projet n'a pas encore ce skill, lancer le script depuis un clone local de `agentic-starter` :
+   Si le projet n'a pas encore `.codex/`, lancer le script depuis un clone local de `agentic-starter` :
    ```powershell
-   <CHEMIN_AGENTIC_STARTER>\.claude\skills\project-upgrade\scripts\project-upgrade.ps1 -ProjectRoot <CHEMIN_PROJET>
+   <CHEMIN_AGENTIC_STARTER>\.codex\skills\agentic-upgrade\scripts\agentic-upgrade.ps1 -ProjectRoot <CHEMIN_PROJET>
    ```
 
 3. Présenter le rapport dry-run à l'utilisateur, surtout les conflits et fichiers qui ne seront pas écrasés.
 
 4. Appliquer uniquement après accord :
    ```powershell
-   .\.claude\skills\project-upgrade\scripts\project-upgrade.ps1 -Apply
+   .\.codex\skills\agentic-upgrade\scripts\agentic-upgrade.ps1 -Apply
    ```
 
    Pour supprimer l'ancien dossier `.claude/memory/` après copie vers `.memory/`, ajouter :
