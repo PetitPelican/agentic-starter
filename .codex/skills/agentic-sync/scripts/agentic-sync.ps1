@@ -32,7 +32,17 @@ function Ensure-Directory([string]$Path) {
 }
 function Files-Differ([string]$a, [string]$b) {
   if (-not (Test-Path -LiteralPath $b)) { return $true }
-  return (Get-FileHash -LiteralPath $a).Hash -ne (Get-FileHash -LiteralPath $b).Hash
+  $ba = [System.IO.File]::ReadAllBytes($a)
+  $bb = [System.IO.File]::ReadAllBytes($b)
+  # Binaire (contient un octet nul, ex. reference.docx) -> comparaison brute par hash.
+  if (($ba -contains 0) -or ($bb -contains 0)) {
+    return (Get-FileHash -LiteralPath $a).Hash -ne (Get-FileHash -LiteralPath $b).Hash
+  }
+  # Texte -> normaliser BOM + fins de ligne (CRLF/CR -> LF) avant de comparer, pour ne pas
+  # signaler comme divergents des fichiers identiques au contenu (Windows CRLF vs starter LF).
+  $ta = [System.Text.Encoding]::UTF8.GetString($ba).TrimStart([char]0xFEFF) -replace "`r`n", "`n" -replace "`r", "`n"
+  $tb = [System.Text.Encoding]::UTF8.GetString($bb).TrimStart([char]0xFEFF) -replace "`r`n", "`n" -replace "`r", "`n"
+  return $ta -ne $tb
 }
 
 # --- ownership manifest -------------------------------------------------------
