@@ -18,14 +18,16 @@ description: >
 ## Principe : ownership
 
 - **Starter-owned → mis à jour vers la dernière version** (le script s'en charge) : corps des
-  skills (`.claude/skills/**`, `.codex/skills/**`), moteur du site (`build_site.py`, `publish.py`,
-  `requirements.txt`, `.gitignore`, `_assets/reference.docx`), suppression de ce qui a été retiré
+  skills (`.claude/skills/**`, `.codex/skills/**`), suppression de ce qui a été retiré
   (`.claude/agents/`, `.codex/agents/`), nettoyage des renommages (`agent-init`, `doc-site`…).
+  L'écrasement des skills est **voulu** : c'est le but du sync (récupérer la dernière logique).
 - **Project-owned → jamais écrasé** : `.memory/**` (contenu), `site/site.config.yml`,
   `site/_content/**`, `.env*`, `.mcp.json`, `settings.local.json`.
 - **Zone grise → réconciliée à la main** (ci-dessous, étapes 3-5), jamais en écrasement aveugle :
-  section « Mémoire » + règles de `CLAUDE.md`/`AGENTS.md`, dérive de taxonomie mémoire, swap d'un
-  site hardcodé vers config-driven.
+  section « Mémoire » + règles de `CLAUDE.md`/`AGENTS.md`, dérive de taxonomie mémoire, et le
+  **moteur de site** (`build_site.py`, `publish.py`, `.gitignore`, `_assets/reference.docx`) :
+  le script le **signale** s'il diffère mais ne l'écrase jamais — l'écraser seul casserait le build
+  tant que `site.config.yml` n'existe pas ; il se met à jour dans le bloc « site » (swap + config + vérif).
 
 Toujours **dry-run → validation → apply**. Rien de destructif sur le contenu projet.
 

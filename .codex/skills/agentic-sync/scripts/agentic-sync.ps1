@@ -37,7 +37,11 @@ function Files-Differ([string]$a, [string]$b) {
 
 # --- ownership manifest -------------------------------------------------------
 # Fichiers 100% starter-owned : écrasés vers la version du template.
-$SyncFiles = @(
+# Moteur / assets de site (starter-owned) : NON écrasés par la passe mécanique.
+# Contrairement aux skills, écraser le moteur seul casse le build tant que
+# site.config.yml n'est pas généré -> on se contente de SIGNALER la divergence,
+# la mise à jour se fait dans le bloc « site » guidé (swap + config + vérif build).
+$SiteEngine = @(
   "site/build_site.py",
   "site/publish.py",
   "site/requirements.txt",
@@ -133,17 +137,14 @@ foreach ($harness in @(".claude", ".codex")) {
   }
 }
 
-# 2. Fichiers starter-owned (moteur de site, etc.) - écrasés seulement s'ils existent
-#    déjà côté projet (on ne crée pas un site/ là où il n'y en a pas : c'est /publish-docs init).
-foreach ($rel in $SyncFiles) {
+# 2. Moteur de site : jamais écrasé ici. On signale seulement s'il diffère du template,
+#    pour le traiter dans le bloc « site » guidé (swap moteur + site.config.yml + vérif build).
+foreach ($rel in $SiteEngine) {
   $src = Join-Path $Template $rel
   $dst = Join-Path $Project $rel
   if (-not (Test-Path -LiteralPath $src)) { continue }
-  if (-not (Test-Path -LiteralPath $dst)) { Add-Skip "Absent côté projet, non créé: $rel (site/ ? -> /publish-docs init)"; continue }
-  if (Files-Differ $src $dst) {
-    Add-Change "Sync $rel"
-    if ($Apply) { Copy-Item -LiteralPath $src -Destination $dst -Force }
-  }
+  if (-not (Test-Path -LiteralPath $dst)) { continue }   # absent -> pas de site, /publish-docs init
+  if (Files-Differ $src $dst) { Add-Manual "site: $rel diffère du template -> migration guidée (bloc site du SKILL), NON écrasé automatiquement" }
 }
 
 # 3. Suppression de ce que le starter a retiré / renommé.
