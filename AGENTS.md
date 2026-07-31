@@ -71,7 +71,10 @@ La mémoire vit dans `.memory/` (taxonomie : un fichier = un axe).
 - `decisions.md` — journal des décisions (le pourquoi) → pour consulter/tracer un choix
 - `operations.md` — 🔒 **privé** : hébergement, déploiement, secrets, dépannage → uniquement pour déployer/déboguer ; jamais publié
 
+**Journal de bord** : `/memory-update` écrit aussi `logs/<AAAA-MM-JJ>.md` (committé, **append-only**) — le récit chronologique de ce qui a été fait, jour par jour. Complément de `state.md` (snapshot).
+
 Pour mettre à jour : `/memory-update`. Pour publier un site de doc depuis la mémoire : `/publish-docs`.
+Le hook **`memory-guard`** (`.codex/hooks/`, câblé dans `settings.json`) bloque un `git push` de code sans mise à jour `.memory/` → il force `/memory-update` (dormant tant que git est interdit par défaut).
 
 ---
 

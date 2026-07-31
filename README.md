@@ -119,6 +119,14 @@ Tout passe par des **skills** (plus d'agents-personas) :
 - `caveman` — mode ultra-compressé pour réduire les tokens
 - `caveman-compress` — compresse les fichiers mémoire
 
+### Hooks (`.claude/hooks/`, `.codex/hooks/`)
+
+Automatisations exécutées par le harnais (câblées dans `settings.json`) :
+
+- **`memory-guard`** (`PreToolUse` sur `git push`) — bloque un push de **code projet** poussé sans mise à jour de `.memory/` → force `/memory-update` (qui met aussi à jour le **journal** `logs/<jour>.md`). Fail-open ; échappatoire ` # memory-ok` en fin de commande. Dormant tant que `git push` est interdit par défaut (`settings.json`) ; s'active dès qu'un projet autorise git.
+
+> La règle « mettre à jour la mémoire avant un push » n'est plus seulement *énoncée* dans CLAUDE.md, elle est **appliquée** par ce hook.
+
 ### Mémoire
 
 La mémoire n'est plus stockée dans `.claude/`. Elle vit maintenant à la racine, dans `.memory/`, pour être partagée par Claude Code, Codex et les autres assistants.
@@ -137,6 +145,8 @@ Taxonomie générique (un fichier = un axe), avec une frontière **public / priv
 Les fichiers **publics** peuvent alimenter un site de doc via `/publish-docs` ; `operations.md` reste privé.
 
 Les fichiers chargés à chaque session (`charter`, `rules`, `state`, `MEMORY.md`) sont volontairement courts ; `state.md` est un **snapshot roulant borné** (pas un journal). `architecture`, `decisions` et `operations` sont lus à la demande.
+
+**Journal de bord** : `/memory-update` écrit aussi `logs/<AAAA-MM-JJ>.md` — un journal **committé, append-only** qui raconte, jour par jour, ce qui a été fait (features, décisions, fichiers touchés). Complément de `state.md` (snapshot) : l'historique chronologique complet, jamais élagué ni compressé.
 
 ### Site de documentation (optionnel)
 

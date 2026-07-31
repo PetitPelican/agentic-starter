@@ -70,6 +70,7 @@ $ProjectOwned = @(
   "CLAUDE.md / AGENTS.md (rôle, règles) -> section Mémoire + règles à réconcilier à la main",
   ".memory/** (contenu) -> migration de taxonomie via le SKILL, pas ce script",
   "site/site.config.yml, site/_content/** -> conservés ; générer la config si absente",
+  "settings.json (permissions + CÂBLAGE des hooks) -> project-owned : vérifier que le hook memory-guard est câblé comme dans le settings.json du starter (le script des hooks, lui, est synchronisé)",
   ".env*, .mcp.json, settings.local.json -> conservés"
 )
 
@@ -144,6 +145,15 @@ foreach ($harness in @(".claude", ".codex")) {
   if (-not (Test-Path -LiteralPath $tplSkills)) { continue }
   foreach ($skill in Get-ChildItem -Directory -LiteralPath $tplSkills) {
     Mirror-Dir $skill.FullName (Join-Path $Project "$harness/skills/$($skill.Name)")
+  }
+}
+
+# 1b. Mirror des hooks (starter-owned) : scripts .claude/hooks + .codex/hooks.
+#     Le CÂBLAGE (settings.json) reste project-owned -> signalé plus bas.
+foreach ($harness in @(".claude", ".codex")) {
+  $tplHooks = Join-Path $Template "$harness/hooks"
+  if (Test-Path -LiteralPath $tplHooks) {
+    Mirror-Dir $tplHooks (Join-Path $Project "$harness/hooks")
   }
 }
 
