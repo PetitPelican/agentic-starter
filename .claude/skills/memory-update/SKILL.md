@@ -36,11 +36,16 @@ Agis comme agent mémoire du projet. Ton rôle : maintenir les fichiers `.memory
    - Hébergement, déploiement, secrets, dépannage → `operations.md` (🔒 privé)
    - Nouveau fichier mémoire créé → ajouter une ligne dans `MEMORY.md`
 
-5. **Mets à jour la date** `_Dernière mise à jour_` dans chaque fichier modifié.
+6. **Mets à jour la date** `_Dernière mise à jour_` dans chaque fichier modifié.
 
-6. **Compresse chaque fichier modifié** avec caveman-compress pour garder les fichiers denses :
-   - Invoque le skill `/caveman-compress` sur chaque fichier mis à jour
-   - Ne compresse pas les fichiers non modifiés
+7. **Journal de bord quotidien** — `logs/<AAAA-MM-JJ>.md` (committé, **append-only**) :
+   - Ajoute une **section horodatée** (`## HH:MM — <titre court>`) résumant ce qui a été fait **dans cette session** : features/tâches livrées, décisions prises, fichiers/objets modifiés, points ouverts.
+   - **Append-only** : ne réécris JAMAIS les sections déjà présentes ; crée le fichier au premier passage du jour (en-tête `# Journal — <AAAA-MM-JJ>`).
+   - Le journal = **historique chronologique** (complément de `state.md`, qui reste un snapshot borné) → on n'y élague rien.
+
+8. **Compresse chaque fichier mémoire modifié** avec caveman-compress pour garder les fichiers denses :
+   - Invoque `/caveman-compress` sur chaque fichier `.memory/` mis à jour ; ne compresse pas les fichiers non modifiés.
+   - **N'applique PAS caveman-compress à `logs/`** (récit lisible destiné à l'humain, versionné).
 
 ## Règles
 
@@ -52,5 +57,6 @@ Agis comme agent mémoire du projet. Ton rôle : maintenir les fichiers `.memory
 - **Bornage des fichiers chargés chaque session** (`charter`/`rules`/`state`/`MEMORY.md`) : ils doivent rester courts, sinon ils coûtent des tokens à chaque ouverture de session.
   - `state.md` = **snapshot roulant, pas un journal** : garde fait récent / en cours / bloqué / point de reprise ; élague ou archive le terminé ancien (plafond ~1 écran). Si l'historique compte, il va dans `decisions.md` (append-only, lu à la demande), pas dans `state.md`.
   - `MEMORY.md` = **pointeurs uniquement** (une ligne par fichier) ; jamais de prose accumulée.
-- Ne mets jamais de secret/token/clé/IP dans un fichier **public** ; ça va dans `operations.md` (privé)
+- Ne mets jamais de secret/token/clé/IP dans un fichier **public** ; ça va dans `operations.md` (privé). Le **journal `logs/`** est public/committé : mêmes règles secrets.
+- **Journal `logs/<jour>.md` = append-only committé** (historique chronologique), distinct de `state.md` (snapshot borné). On n'y élague ni compresse rien.
 - Si un site de doc existe (`site/`), propose `/publish-docs refresh` en fin de mise à jour pour resynchroniser la doc publique depuis la mémoire
