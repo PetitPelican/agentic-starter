@@ -54,39 +54,29 @@ En fin de session ou de sprint, lance :
 
 ## Projet existant
 
-Si ton projet a déjà du code, ne clone pas directement dans le répertoire racine. Copie uniquement les dossiers et fichiers utiles.
+Ton projet a déjà du code (avec ou sans ancien `claude-starter`) ? N'utilise pas `/project-init` (réservé à un nouveau projet) : le skill dédié est **`/agentic-upgrade`**, purement **additif** (*copy-if-missing*, aucun écrasement de tes fichiers).
+
+Comme le skill vit dans `.claude/`, amorce d'abord le harnais Claude Code, recharge l'éditeur, puis lance-le :
 
 ```bash
+# Linux / Mac
 git clone https://github.com/PetitPelican/agentic-starter.git /tmp/agentic-starter
-
 cp -r /tmp/agentic-starter/.claude ./
-cp -r /tmp/agentic-starter/.codex ./
-cp -r /tmp/agentic-starter/.memory ./
-cp /tmp/agentic-starter/CLAUDE.md ./
-cp /tmp/agentic-starter/AGENTS.md ./
-cp /tmp/agentic-starter/.mcp.json.example ./
-
 rm -rf /tmp/agentic-starter
+# recharge l'éditeur, puis dans Claude Code : /agentic-upgrade
 ```
-
-Sur Windows (PowerShell) :
 
 ```powershell
+# Windows PowerShell
 git clone https://github.com/PetitPelican/agentic-starter.git $env:TEMP\agentic-starter
-
 Copy-Item -Recurse "$env:TEMP\agentic-starter\.claude" ".\.claude"
-Copy-Item -Recurse "$env:TEMP\agentic-starter\.codex" ".\.codex"
-Copy-Item -Recurse "$env:TEMP\agentic-starter\.memory" ".\.memory"
-Copy-Item "$env:TEMP\agentic-starter\CLAUDE.md" ".\CLAUDE.md"
-Copy-Item "$env:TEMP\agentic-starter\AGENTS.md" ".\AGENTS.md"
-Copy-Item "$env:TEMP\agentic-starter\.mcp.json.example" ".\.mcp.json.example"
-
 Remove-Item -Recurse -Force "$env:TEMP\agentic-starter"
+# recharge (Shift+Ctrl+P -> Developer: Reload Window), puis : /agentic-upgrade
 ```
 
-Puis recharge l'éditeur (`Shift + Ctrl + P` -> **Developer: Reload Window**) et lance `/project-init`.
+`agentic-upgrade` copie le reste (`.codex/`, `AGENTS.md`, `.memory/`, `.mcp.json.example`), migre la mémoire d'un ancien `claude-starter` le cas échéant, et signale tout conflit sans rien écraser.
 
-> `project-init` détecte automatiquement que le projet est existant et ajoute uniquement ce qui manque.
+> Projet **déjà** agentic à remettre au niveau de la dernière version du starter → `/agentic-sync`.
 
 ---
 

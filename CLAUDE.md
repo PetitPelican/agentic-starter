@@ -58,23 +58,9 @@ L'utilisateur définit le "quoi" et le "pourquoi", tu décides du "comment" et t
 
 ## Mémoire projet
 
-La mémoire vit dans `.memory/` (taxonomie : un fichier = un axe).
+La mémoire vit dans `.memory/` (un fichier = un axe). **L'index et la stratégie de lecture — quoi lire en début de session vs à la demande, frontière public/privé — sont dans [`.memory/MEMORY.md`](.memory/MEMORY.md)**, chargé à chaque session : s'y référer, ne pas redupliquer cette carte ici.
 
-**À lire en début de session** (contexte de travail — court, fort signal) :
-- `MEMORY.md` — index / pointeurs
-- `charter.md` — but, périmètre, stack, rôles (le « quoi »)
-- `rules.md` — règles métier, accès, contraintes (à respecter en permanence)
-- `state.md` — état courant : fait / en cours / bloqué (le point de reprise) — **snapshot roulant borné**, pas un journal
-
-**À lire à la demande** (quand la tâche l'exige, pas en systématique) :
-- `architecture.md` — comment c'est bâti (+ modèle de données) → avant de toucher au code/structure
-- `decisions.md` — journal des décisions (le pourquoi) → pour consulter/tracer un choix
-- `operations.md` — 🔒 **privé** : hébergement, déploiement, secrets, dépannage → uniquement pour déployer/déboguer ; jamais publié
-
-**Journal de bord** : `/memory-update` écrit aussi `logs/<AAAA-MM-JJ>.md` (committé, **append-only**) — le récit chronologique de ce qui a été fait, jour par jour. Complément de `state.md` (snapshot).
-
-Pour mettre à jour : `/memory-update`. Pour publier un site de doc depuis la mémoire : `/publish-docs`.
-Le hook **`memory-guard`** (`.claude/hooks/`, câblé dans `settings.json`) bloque un `git push` de code sans mise à jour `.memory/` → il force `/memory-update` (dormant tant que git est interdit par défaut).
+Mettre à jour : `/memory-update` (écrit aussi le journal `logs/<AAAA-MM-JJ>.md` — committé, append-only). Publier la doc publique : `/publish-docs` (ne lit jamais `operations.md`). Le hook **`memory-guard`** (câblé dans `settings.json`) bloque un `git push` de code sans mise à jour `.memory/` — dormant tant que git est interdit par défaut.
 
 ---
 

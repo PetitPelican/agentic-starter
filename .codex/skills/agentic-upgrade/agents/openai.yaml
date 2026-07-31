@@ -1,4 +1,0 @@
-interface:
-  display_name: "Agentic Upgrade"
-  short_description: "Migre claude-starter vers agentic-starter."
-  default_prompt: "Use $agentic-upgrade to migrate this project from claude-starter to agentic-starter."
