@@ -73,3 +73,6 @@ Tu as accès aux outils suivants — avant toute action, demande l'accord de l'u
 
 **CLI**
 - [À COMPLÉTER par project-init]
+<!-- Si `tools/claude-accounts` est installé sur la machine — LECTURE SEULE.
+     Ne jamais proposer `switch`/`auto` : elles redémarrent tous les agents. -->
+- `claude-accounts status` — quotas des comptes Claude · `claude-accounts sessions` — agents en cours

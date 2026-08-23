@@ -1,0 +1,18 @@
+{
+  "_lire": "Copier en ~/.config/claude-accounts/accounts.json puis adapter. UN SEUL compte doit avoir \"profile\": \"default\" — c'est celui que Claude Code utilise quand CLAUDE_CONFIG_DIR n'est pas défini.",
+
+  "accounts": {
+    "perso": { "profile": "default" },
+    "pro":   { "profile": "~/.claude-pro" }
+  },
+
+  "seuil": 90.0,
+  "hysteresis": 10.0,
+  "cooldown": 1800,
+  "intervalle": 300,
+
+  "_seuil": "% de la fenêtre contraignante (max de 5h et 7j) déclenchant une bascule automatique.",
+  "_hysteresis": "Le compte candidat doit être sous (seuil - hysteresis). Sans cette marge, deux comptes proches du seuil basculeraient en boucle.",
+  "_cooldown": "Secondes minimales entre deux bascules automatiques.",
+  "_intervalle": "Secondes entre deux tours en mode --watch."
+}

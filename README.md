@@ -145,6 +145,58 @@ Les fichiers chargés à chaque session (`charter`, `rules`, `state`, `MEMORY.md
 
 ---
 
+## Outils machine (optionnel)
+
+Le reste du starter est **par projet** : on le clone dans un dépôt. `tools/` est
+la seule exception — de l'outillage **par machine**, installé une fois par
+poste, indépendant du harnais.
+
+### `claude-accounts` — plusieurs comptes Claude Code
+
+Pour un poste qui fait tourner plusieurs agents en continu (tmux, SSH, pilotage
+depuis l'app mobile) avec deux abonnements ou plus, chacun ayant sa limite
+d'usage.
+
+```sh
+sh tools/claude-accounts/install.sh
+source ~/.zshrc
+```
+
+Puis déclarer ses comptes dans `~/.config/claude-accounts/accounts.json` :
+
+```json
+{
+  "accounts": {
+    "perso": { "profile": "default" },
+    "pro":   { "profile": "~/.claude-pro" }
+  }
+}
+```
+
+| Commande | Rôle |
+|---|---|
+| `<compte>` | lance Claude Code sur ce compte |
+| `cwho` | quotas réels des comptes + agents en cours |
+| `tls` | sessions tmux, **tous sockets**, et leur contenu |
+| `cacc switch <compte> --go` | déplace tous les agents vers un compte |
+| `cacc auto --watch --go` | bascule automatique au seuil de quota |
+
+**Le principe.** `CLAUDE_CONFIG_DIR` est une variable d'environnement : donc par
+processus, donc par panneau tmux. Chaque compte a son propre
+`.credentials.json`, et un agent déjà lancé ne peut pas changer de compte sous
+ses pieds. Le *travail* (`projects/`, réglages, plugins) est partagé par
+symlinks entre les profils, donc `--resume` retrouve le même fil depuis
+n'importe quel compte ; seule l'*identité* reste séparée.
+
+Il n'y a donc **jamais de « swap » de credentials** : réécrire ce fichier sous
+des agents vivants les ferait changer de compte au premier renouvellement de
+jeton. `cacc switch` redémarre chaque agent proprement, avec `--resume` sur son
+fil exact, et refuse de toucher un agent au travail.
+
+Documentation complète, pièges compris (profil « default », identifiants de
+panneau propres à chaque socket, ponts Remote Control liés au compte) :
+[`tools/claude-accounts/README.md`](tools/claude-accounts/README.md).
+
 ## Configuration MCP
 
 Copie `.mcp.json.example` vers `.mcp.json`, puis remplis les clés nécessaires.

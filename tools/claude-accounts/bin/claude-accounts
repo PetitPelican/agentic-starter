@@ -1,0 +1,683 @@
+#!/usr/bin/python3
+"""claude-accounts — plusieurs comptes Claude Code sur une machine, sans casser
+les agents en cours.
+
+    claude-accounts status                   quotas des comptes + agents
+    claude-accounts sessions                 sessions tmux, TOUS sockets
+    claude-accounts switch <compte> [--go]   déplace les agents vers un compte
+    claude-accounts auto [--go] [--watch]    bascule au seuil de quota
+    claude-accounts link                     (re)crée les ressources partagées
+    claude-accounts default <compte>         choisit le compte de `claude` seul
+
+Configuration : ~/.config/claude-accounts/accounts.json (voir accounts.example.json).
+
+--- Pourquoi pas un simple « swap » de credentials ---------------------------
+
+Un compte est fixé au LANCEMENT d'un processus Claude Code. Réécrire le fichier
+de credentials sous des agents vivants les ferait changer de compte au premier
+renouvellement de jeton, et un agent qui renouvelle le sien écraserait les
+jetons que le swap venait d'installer. On isole donc chaque compte dans son
+propre CLAUDE_CONFIG_DIR — variable d'environnement, donc par processus, donc
+par panneau tmux — et « basculer » consiste à redémarrer proprement chaque agent
+sur son fil (`--resume <sessionId>`).
+
+--- Le piège du profil « default » -------------------------------------------
+
+Le profil par défaut range son `.claude.json` dans `$HOME/.claude.json`, À CÔTÉ
+du dossier `~/.claude`. Un profil nommé le range DANS son dossier. Pointer
+CLAUDE_CONFIG_DIR sur `~/.claude` ne redonne donc PAS le profil par défaut :
+Claude Code y crée une config vierge. Le compte « default » doit RETIRER la
+variable (`env -u`), jamais la définir.
+
+--- Shebang ------------------------------------------------------------------
+
+`/usr/bin/python3` EN DUR, surtout pas `/usr/bin/env python3` : sur macOS ce
+dernier peut attraper un Python sans certificats racine, et tout appel HTTPS
+échoue alors en CERTIFICATE_VERIFY_FAILED.
+"""
+from __future__ import annotations
+
+import json
+import os
+import pathlib
+import subprocess
+import sys
+import time
+import urllib.error
+import urllib.request
+from datetime import datetime, timezone
+
+HOME = pathlib.Path.home()
+CONFIG = pathlib.Path(os.environ.get("CLAUDE_ACCOUNTS_CONFIG",
+                                    HOME / ".config" / "claude-accounts" / "accounts.json"))
+ETAT = HOME / ".config" / "claude-accounts" / "state.json"
+CACHE = HOME / ".config" / "claude-accounts" / "usage-cache.json"
+JOURNAL = HOME / ".config" / "claude-accounts" / "auto.log"
+
+USAGE_URL = "https://api.anthropic.com/api/oauth/usage"
+BETA = "oauth-2025-04-20"
+# L'endpoint impose son propre budget de requêtes et répond 429 s'il est
+# sollicité trop souvent : on sert un cache entre deux appels.
+PAUSE = 90
+
+# Ressources partagées entre profils : le TRAVAIL suit, l'IDENTITÉ reste séparée.
+# `projects/` porte les transcripts ET la mémoire — c'est lui qui permet à
+# `--resume` de retrouver le même fil depuis n'importe quel compte.
+PARTAGE = ["projects", "plugins", "skills", "agents", "commands", "hooks",
+           "settings.json", "settings.local.json", "history.jsonl"]
+
+SHELLS = {"zsh", "-zsh", "bash", "-bash", "sh", "fish", "login", "tmux"}
+G, J, R, D, B, X = "\033[32m", "\033[33m", "\033[31m", "\033[2m", "\033[1m", "\033[0m"
+
+
+# ─── configuration ───────────────────────────────────────────────────────────
+
+def config() -> dict:
+    if not CONFIG.exists():
+        sys.exit(f"config absente : {CONFIG}\n"
+                 f"copie tools/claude-accounts/accounts.example.json à cet emplacement.")
+    try:
+        c = json.loads(CONFIG.read_text())
+    except json.JSONDecodeError as e:
+        sys.exit(f"config illisible ({CONFIG}) : {e}")
+    comptes = c.get("accounts") or {}
+    if not comptes:
+        sys.exit("config sans compte : renseigne \"accounts\".")
+    defauts = [n for n, v in comptes.items() if v.get("profile") == "default"]
+    if len(defauts) != 1:
+        sys.exit("config invalide : il faut EXACTEMENT un compte avec "
+                 f"\"profile\": \"default\" (trouvé : {len(defauts)}).")
+    return c
+
+
+def profils(c: dict) -> dict[str, pathlib.Path]:
+    """nom de compte → dossier de profil (le « default » vaut ~/.claude)."""
+    out = {}
+    for nom, v in c["accounts"].items():
+        p = v.get("profile", "default")
+        out[nom] = HOME / ".claude" if p == "default" else pathlib.Path(p).expanduser()
+    return out
+
+
+def est_defaut(c: dict, nom: str) -> bool:
+    return c["accounts"][nom].get("profile") == "default"
+
+
+def chemin_config_json(c: dict, nom: str, racine: pathlib.Path) -> pathlib.Path:
+    """Où vit le `.claude.json` de ce profil — voir le piège en tête de fichier."""
+    return HOME / ".claude.json" if est_defaut(c, nom) else racine / ".claude.json"
+
+
+def compte_actif(c: dict) -> str:
+    """Le compte que donne `claude` tout court."""
+    noms = list(c["accounts"])
+    choisi = lire(ETAT).get("default")
+    return choisi if choisi in noms else next(n for n in noms if est_defaut(c, n))
+
+
+# ─── utilitaires ─────────────────────────────────────────────────────────────
+
+def lire(chemin) -> dict:
+    try:
+        return json.loads(pathlib.Path(chemin).read_text())
+    except Exception:
+        return {}
+
+
+def ecrire(chemin: pathlib.Path, data: dict) -> None:
+    chemin.parent.mkdir(parents=True, exist_ok=True)
+    chemin.write_text(json.dumps(data, indent=2))
+
+
+def tmux(socket: str, *args) -> subprocess.CompletedProcess:
+    return subprocess.run(["tmux", "-L", socket, *args], capture_output=True, text=True)
+
+
+def sockets() -> list[str]:
+    """Tous les serveurs tmux vivants. `tmux ls` n'en montre qu'UN — et les
+    identifiants de panneau (%0, %1…) sont propres à chaque socket, donc s'y
+    fier seul revient à confondre deux panneaux différents."""
+    vus = []
+    for base in (f"/tmp/tmux-{os.getuid()}", f"/private/tmp/tmux-{os.getuid()}"):
+        if not os.path.isdir(base):
+            continue
+        for f in sorted(pathlib.Path(base).glob("*")):
+            if f.name not in vus and tmux(f.name, "list-panes", "-a").returncode == 0:
+                vus.append(f.name)
+    return vus
+
+
+def ancetres(pid: int) -> list[int]:
+    chaine, vu = [], set()
+    while pid and pid > 1 and pid not in vu:
+        vu.add(pid)
+        chaine.append(pid)
+        r = subprocess.run(["ps", "-o", "ppid=", "-p", str(pid)],
+                           capture_output=True, text=True)
+        try:
+            pid = int(r.stdout.strip())
+        except ValueError:
+            break
+    return chaine
+
+
+def vivant(pid: int) -> bool:
+    try:
+        os.kill(pid, 0)
+        return True
+    except OSError:
+        return False
+
+
+def duree(s: float | None) -> str:
+    if s is None:
+        return "?"
+    if s <= 0:
+        return "maintenant"
+    h, m = divmod(int(s) // 60, 60)
+    j, h = divmod(h, 24)
+    return f"{j} j {h} h" if j else (f"{h} h {m:02d}" if h else f"{m} min")
+
+
+def couleur(p: float) -> str:
+    return G if p < 60 else (J if p < 85 else R)
+
+
+def jauge(p: float, large: int = 26) -> str:
+    plein = round(large * min(p, 100) / 100)
+    return couleur(p) + "█" * plein + D + "░" * (large - plein) + X
+
+
+# ─── inventaire des agents ───────────────────────────────────────────────────
+
+def panneaux() -> list[tuple[str, str, int, str, str]]:
+    out = []
+    for sock in sockets():
+        for ligne in tmux(sock, "list-panes", "-a", "-F",
+                          "#{pane_id}\t#{pane_pid}\t#{session_name}\t#{pane_current_path}"
+                          ).stdout.splitlines():
+            pane, pid, sess, chemin = (ligne.split("\t") + [""] * 4)[:4]
+            try:
+                out.append((sock, pane, int(pid), sess, chemin))
+            except ValueError:
+                pass
+    return out
+
+
+def agents(c: dict) -> tuple[list[dict], list[dict]]:
+    """Agents Claude vivants, tous comptes et tous sockets confondus.
+
+    Le rattachement à un panneau se fait par la PARENTÉ des process, jamais par
+    l'identifiant `%n` : celui-ci est propre à chaque socket, donc le `%0` d'un
+    socket désigne un tout autre panneau que le `%0` d'un autre.
+    """
+    pans = panneaux()
+    trouves, orphelins = [], []
+    for nom, racine in profils(c).items():
+        for f in sorted((racine / "sessions").glob("*.json")):
+            d = lire(f)
+            pid = d.get("pid")
+            if not pid or not vivant(pid):
+                continue
+            lignee = ancetres(pid)
+            place = next((p for p in pans if p[2] in lignee), None)
+            base = dict(compte=nom, pid=pid, sid=d.get("sessionId", ""),
+                        cwd=d.get("cwd", ""), nom=d.get("name") or "?",
+                        statut=d.get("status", "?"), pont=d.get("bridgeSessionId"))
+            if place:
+                sock, pane, _, sess, _ = place
+                trouves.append(dict(base, socket=sock, pane=pane, session=sess))
+            else:
+                orphelins.append(dict(base, cible=d.get("tmux") or "hors tmux"))
+    return trouves, orphelins
+
+
+def mon_panneau() -> tuple[str, str] | None:
+    """Le panneau d'où CETTE commande est lancée, s'il y en a un.
+
+    Sans ce repérage, une bascule lancée depuis un agent redémarrerait le
+    panneau qui exécute la commande — elle se tuerait en pleine action.
+    """
+    lignee = ancetres(os.getpid())
+    for sock, pane, pid, _, _ in panneaux():
+        if pid in lignee:
+            return sock, pane
+    return None
+
+
+# ─── usage / quotas ──────────────────────────────────────────────────────────
+
+def usage(nom: str, racine: pathlib.Path, cache: dict) -> tuple[dict | None, str]:
+    entree = cache.get(nom) or {}
+    if time.time() - entree.get("at", 0) < PAUSE and entree.get("data"):
+        return entree["data"], "cache"
+    jeton = (lire(racine / ".credentials.json").get("claudeAiOauth") or {}).get("accessToken")
+    if not jeton:
+        return None, "non connecté"
+    req = urllib.request.Request(USAGE_URL, headers={
+        "Authorization": f"Bearer {jeton}",
+        "anthropic-beta": BETA,
+        "User-Agent": "claude-accounts/1.0"})
+    try:
+        with urllib.request.urlopen(req, timeout=8) as r:
+            data = json.loads(r.read().decode())
+        cache[nom] = {"at": time.time(), "data": data}
+        return data, "frais"
+    except urllib.error.HTTPError as e:
+        # 429 = budget de sondage dépassé, pas un quota de modèle épuisé.
+        return (entree.get("data"), "429 — cache") if e.code == 429 else (None, f"HTTP {e.code}")
+    except Exception as e:
+        return entree.get("data"), type(e).__name__
+
+
+def fenetre(data: dict | None, cle: str) -> tuple[float | None, float | None]:
+    f = (data or {}).get(cle) or {}
+    if f.get("utilization") is None:
+        return None, None
+    reste = None
+    if f.get("resets_at"):
+        try:
+            t = datetime.fromisoformat(f["resets_at"].replace("Z", "+00:00"))
+            reste = (t - datetime.now(timezone.utc)).total_seconds()
+        except Exception:
+            pass
+    return float(f["utilization"]), reste
+
+
+def contraignante(data: dict | None) -> float | None:
+    """La plus haute des utilisations 5 h / 7 j — celle qui bloquera en premier."""
+    vals = [p for p, _ in (fenetre(data, k) for k in ("five_hour", "seven_day"))
+            if p is not None]
+    return max(vals) if vals else None
+
+
+# ─── commandes ───────────────────────────────────────────────────────────────
+
+def cmd_status(c: dict, args: list[str]) -> int:
+    boucle = "--watch" in args
+    while True:
+        cache = lire(CACHE)
+        actif = compte_actif(c)
+        lignes = [f"{B}  Comptes Claude{X}{D}"
+                  f"{datetime.now().strftime('%d/%m %H:%M:%S').rjust(48)}{X}",
+                  "  " + "─" * 62]
+        for nom, racine in profils(c).items():
+            cfg = lire(chemin_config_json(c, nom, racine))
+            mail = (cfg.get("oauthAccount") or {}).get("emailAddress") or "non connecté"
+            oauth = lire(racine / ".credentials.json").get("claudeAiOauth") or {}
+            sess = ""
+            if oauth.get("refreshTokenExpiresAt"):
+                # On montre le refresh token, pas l'access token : ce dernier ne
+                # vit que quelques heures et Claude Code le renouvelle seul.
+                j = (oauth["refreshTokenExpiresAt"] / 1000 - time.time()) / 86400
+                sess = f"session {j:.0f} j" + ("  ⚠" if j < 5 else "")
+            tag = f"{B}●{X} {B}{nom}{X}" if nom == actif else f"○ {nom}"
+            note = f"{D}{'défaut · ' if nom == actif else ''}{sess}{X}"
+            lignes.append(f"  {tag:<24} {mail:<32} {note}")
+            data, src = usage(nom, racine, cache)
+            if not data:
+                lignes.append(f"      {D}usage indisponible ({src}){X}")
+            else:
+                for cle, lib in (("five_hour", "5 h"), ("seven_day", "7 j")):
+                    p, reste = fenetre(data, cle)
+                    if p is not None:
+                        lignes.append(f"      {lib}  {jauge(p)} {couleur(p)}{p:5.1f} %{X}"
+                                      f"   {D}↻ {duree(reste)}{X}")
+            lignes.append("")
+        tous, orph = agents(c)
+        lignes.append(f"{B}  Agents{X}{D}{(str(len(tous)) + ' en cours').rjust(56)}{X}")
+        lignes.append("  " + "─" * 62)
+        for a in sorted(tous, key=lambda x: x["session"]):
+            pont = f"{G}⇄{X}" if a["pont"] else f"{R}✗{X}"
+            col = G if a["statut"] == "idle" else J
+            lignes.append(f"   {pont} {a['nom']:<14} {D}{abrege(a['cwd']):<24}{X}"
+                          f"{a['compte']:<10} {col}{a['statut']}{X}")
+        for o in orph:
+            lignes.append(f"   {D}· {o['nom']:<14} hors tmux — "
+                          f"claude --resume {o['sid'][:8]}…{X}")
+        ecrire(CACHE, cache)
+        sortie = "\n".join(lignes)
+        print(("\033[H\033[J" if boucle else "") + sortie, flush=True)
+        if not boucle:
+            return 0
+        time.sleep(5)
+
+
+def abrege(chemin: str) -> str:
+    return chemin.replace(str(HOME), "~") if chemin else ""
+
+
+def occupation(pane_pid: int) -> str | None:
+    """Ce que fait un panneau sans agent : un process notable, ou rien."""
+    a_voir, trouves = [pane_pid], []
+    while a_voir:
+        p = a_voir.pop(0)
+        r = subprocess.run(["pgrep", "-P", str(p)], capture_output=True, text=True)
+        for e in r.stdout.split():
+            trouves.append(int(e))
+            a_voir.append(int(e))
+    for pid in trouves:
+        r = subprocess.run(["ps", "-p", str(pid), "-o", "comm=,command="],
+                           capture_output=True, text=True)
+        if not r.stdout.strip():
+            continue
+        comm, _, cmd = r.stdout.strip().partition(" ")
+        if pathlib.Path(comm).name in SHELLS:
+            continue
+        cmd = cmd.strip() or comm
+        tete, _, reste = cmd.partition(" ")
+        return (pathlib.Path(tete).name + (" " + reste if reste else "")).strip()
+    return None
+
+
+def cmd_sessions(c: dict, args: list[str]) -> int:
+    """Toutes les sessions tmux, tous sockets, et leur contenu.
+
+    On n'utilise PAS `pane_current_command` pour reconnaître un agent : une
+    relance passée par un `zsh -c` enveloppant y fait apparaître « zsh ». La
+    vérité vient des enregistrements `sessions/<pid>.json`.
+    """
+    tous, orph = agents(c)
+    par_panneau = {(a["socket"], a["pane"]): a for a in tous}
+    print(f"{B}  Sessions tmux{X}{D}{datetime.now().strftime('%d/%m %H:%M').rjust(48)}{X}")
+    print("  " + "─" * 62)
+    for sock in sockets():
+        lignes = tmux(sock, "list-panes", "-a", "-F",
+                      "#{pane_id}\t#{pane_pid}\t#{session_name}\t#{session_attached}\t"
+                      "#{pane_current_path}").stdout.splitlines()
+        if not lignes:
+            continue
+        print(f"  {D}socket{X} {B}-L {sock}{X}")
+        vues = set()
+        for ligne in lignes:
+            pane, pid, sess, att, chemin = (ligne.split("\t") + [""] * 5)[:5]
+            if sess in vues:
+                continue
+            vues.add(sess)
+            a = par_panneau.get((sock, pane))
+            if a:
+                pont = f"{G}⇄{X}" if a["pont"] else f"{R}✗ pont mort{X}"
+                col = G if a["statut"] == "idle" else J
+                quoi = f"agent Claude · {B}{a['nom']}{X}  {col}{a['statut']}{X} {pont}"
+            else:
+                proc = occupation(int(pid))
+                quoi = f"{J}process{X} · {proc[:44]}" if proc else f"{D}shell libre{X}"
+            print(f"   {B + '▸' + X if att != '0' else ' '} {sess:<12} {quoi}")
+            print(f"     {D}{abrege(chemin)}{X}")
+        print()
+    for o in orph:
+        print(f"   {D}· {o['nom']:<12} hors tmux — claude --resume {o['sid'][:8]}…{X}")
+    print(f"  {D}▸ = attachée. `tmux ls` seul n'aurait montré qu'un seul socket.{X}")
+    return 0
+
+
+def relance(c: dict, a: dict, vers: str) -> tuple[bool, str]:
+    racine = profils(c)[vers]
+    prefixe = "env -u CLAUDE_CONFIG_DIR" if est_defaut(c, vers) else f"CLAUDE_CONFIG_DIR={racine}"
+    cmd = f"{prefixe} claude --resume {a['sid']}; exec zsh"
+    sock, pane = a["socket"], a["pane"]
+    # remain-on-exit : sans lui, un panneau créé avec `claude` en commande
+    # directe se refermerait à la sortie, avant qu'on puisse le relancer.
+    tmux(sock, "set-option", "-p", "-t", pane, "remain-on-exit", "on")
+    tmux(sock, "send-keys", "-t", pane, "/exit", "Enter")
+    for _ in range(16):
+        if not vivant(a["pid"]):
+            break
+        time.sleep(0.5)
+    # -c est indispensable : sans lui, respawn-pane repart du dossier de
+    # CRÉATION du panneau et l'agent perd le contexte de son projet.
+    r = tmux(sock, "respawn-pane", "-k", "-c", a["cwd"] or str(HOME),
+             "-t", pane, "zsh", "-c", cmd)
+    tmux(sock, "set-option", "-p", "-t", pane, "remain-on-exit", "off")
+    return r.returncode == 0, r.stderr.strip()
+
+
+def reconnecter(tous: list[dict]) -> None:
+    """Renvoie /remote-control aux agents au repos dont le pont est mort.
+
+    On exige `idle` : un agent occupé, ou bloqué sur une question (confiance du
+    dossier, reprise depuis un résumé), recevrait le texte dans sa boîte de
+    saisie au lieu de le traiter comme une commande.
+    """
+    cibles = [a for a in tous if not a["pont"] and a["statut"] == "idle" and not a.get("moi")]
+    if not cibles:
+        autres = [a for a in tous if not a["pont"]]
+        print("Aucun pont à rétablir." if not autres else
+              f"{len(autres)} agent(s) sans pont mais pas au repos — réessaie plus tard.")
+        return
+    for a in cibles:
+        tmux(a["socket"], "send-keys", "-t", a["pane"], "/remote-control", "Enter")
+    time.sleep(10)
+    for a in cibles:
+        tmux(a["socket"], "send-keys", "-t", a["pane"], "Escape")
+    time.sleep(3)
+    for a in cibles:
+        print(f"  {a['session']:<12} {a['nom']:<14} pont relancé")
+
+
+def cmd_switch(c: dict, args: list[str]) -> int:
+    go, force = "--go" in args, "--force" in args
+    restart, ponts = "--restart" in args, "--ponts" in args
+    noms = [a for a in args if not a.startswith("-")]
+
+    tous, orph = agents(c)
+    mien = mon_panneau()
+    for a in tous:
+        a["moi"] = mien is not None and (a["socket"], a["pane"]) == mien
+
+    if ponts:
+        reconnecter(tous)
+        return 0
+    if len(noms) != 1 or noms[0] not in c["accounts"]:
+        print("usage : claude-accounts switch <compte> [--go] [--restart] [--force]")
+        print("        comptes :", ", ".join(c["accounts"]))
+        return 2
+    vers = noms[0]
+
+    for o in orph:
+        print(f"  {D}hors tmux — {o['nom']} : claude --resume {o['sid'][:8]}…{X}")
+    if not tous:
+        print("Aucun agent rattaché à un panneau tmux.")
+        return 0
+
+    for a in tous:
+        a["raison"] = ("compte" if a["compte"] != vers
+                       else "pont mort" if not a["pont"] else "")
+    bouger = [a for a in tous if a["raison"] and not a["moi"]
+              and (a["raison"] == "compte" or restart)]
+    occupes = [a for a in bouger if a["statut"] != "idle"]
+
+    print(f"Bascule vers : {vers}\n")
+    for a in tous:
+        if a["moi"]:
+            action = "⛔ C'EST TOI — relance depuis un shell hors agent"
+        elif not a["raison"]:
+            action = "OK — rien à faire"
+        elif a["statut"] != "idle":
+            action = f"⚠ OCCUPÉ ({a['statut']})"
+        elif a["raison"] == "pont mort" and not restart:
+            action = "pont mort — ajoute --restart"
+        else:
+            action = f"→ à relancer ({a['raison']})"
+        print(f"  -L {a['socket']:<8} {a['session']:<12} {a['nom']:<14} "
+              f"{a['compte']:<10} {a['statut']:<8} {action}")
+
+    if not bouger:
+        morts = [a for a in tous if a["raison"] == "pont mort"]
+        print(f"\nRien à déplacer." + (
+            f" {len(morts)} agent(s) sans pont : ajoute --restart." if morts else ""))
+        return 0
+    if occupes and not force:
+        print(f"\n{len(occupes)} agent(s) au travail — attends, ou --force.")
+        return 1
+    if not go:
+        print(f"\n{len(bouger)} agent(s) seraient relancés. Rien n'a été touché "
+              f"— ajoute --go.")
+        return 0
+
+    print()
+    for a in bouger:
+        ok, err = relance(c, a, vers)
+        print(f"  {a['session']:<12} {'relancé' if ok else 'ÉCHEC : ' + err}")
+
+    print("\nAttente du redémarrage…")
+    touches = {(a["socket"], a["pane"]) for a in bouger}
+    nouveaux: list[dict] = []
+    for _ in range(18):
+        time.sleep(5)
+        nouveaux, _ = agents(c)
+        repartis = [x for x in nouveaux if (x["socket"], x["pane"]) in touches]
+        if len(repartis) == len(touches) and all(x["statut"] == "idle" for x in repartis):
+            break
+    print()
+    reconnecter(nouveaux)
+    ecrire(ETAT, {**lire(ETAT), "default": vers})
+    print(f"\n`claude` seul pointe maintenant sur {vers} (nouveaux shells).")
+    print("Pense à passer ton app mobile sur le même compte.")
+    return 0
+
+
+def cmd_auto(c: dict, args: list[str]) -> int:
+    go, boucle = "--go" in args, "--watch" in args
+    seuil = float(c.get("seuil", 90.0))
+    hyst = float(c.get("hysteresis", 10.0))
+    cooldown = float(c.get("cooldown", 1800))
+    intervalle = float(c.get("intervalle", 300))
+
+    def note(msg: str) -> None:
+        ligne = f"{datetime.now():%Y-%m-%d %H:%M:%S}  {msg}"
+        print(ligne, flush=True)
+        try:
+            JOURNAL.parent.mkdir(parents=True, exist_ok=True)
+            with JOURNAL.open("a") as f:
+                f.write(ligne + "\n")
+        except OSError:
+            pass
+
+    def tour() -> None:
+        cache = lire(CACHE)
+        actif = compte_actif(c)
+        mesures = {}
+        for nom, racine in profils(c).items():
+            data, src = usage(nom, racine, cache)
+            mesures[nom] = (contraignante(data), src)
+        ecrire(CACHE, cache)
+
+        u_actif, src_actif = mesures[actif]
+        resume = "   ".join(f"{n} {('%.0f%%' % u) if u is not None else '?'}"
+                            for n, (u, _) in mesures.items())
+        note(f"actif={actif}   {resume}")
+
+        if u_actif is None:
+            note(f"  usage de {actif} illisible ({src_actif}) — on ne décide rien")
+            return
+        if u_actif < seuil:
+            note(f"  sous le seuil de {seuil:.0f}% — rien à faire")
+            return
+
+        # Le candidat doit avoir une vraie marge : sans cet écart, deux comptes
+        # proches du seuil se renverraient la balle à chaque tour.
+        plafond = seuil - hyst
+        candidats = [(n, u) for n, (u, _) in mesures.items()
+                     if n != actif and u is not None and u <= plafond]
+        if not candidats:
+            note(f"  aucun compte sous {plafond:.0f}% — bascule refusée")
+            return
+        cible = min(candidats, key=lambda t: t[1])[0]
+
+        reste = cooldown - (time.time() - lire(ETAT).get("derniere", 0))
+        if reste > 0:
+            note(f"  bascule récente — on attend {reste / 60:.0f} min")
+            return
+
+        # Un agent au travail perdrait son tour en cours : on ne l'interrompt
+        # jamais automatiquement. C'est la différence entre une bascule et un dégât.
+        tous, _ = agents(c)
+        occupes = [a for a in tous if a["statut"] != "idle"]
+        if occupes:
+            note(f"  {len(occupes)} agent(s) au travail — on reporte")
+            return
+
+        note(f"  → bascule vers {cible}" + ("" if go else "  [simulation, ajoute --go]"))
+        if not go:
+            return
+        r = subprocess.run([sys.argv[0], "switch", cible, "--go"],
+                           capture_output=True, text=True)
+        for l in (r.stdout or "").strip().splitlines():
+            note("    " + l)
+        if r.returncode == 0:
+            ecrire(ETAT, {**lire(ETAT), "derniere": time.time(), "default": cible})
+            note(f"  bascule effectuée — passe ton app sur {cible}")
+        else:
+            note(f"  ÉCHEC ({r.returncode}) : {(r.stderr or '').strip()[:200]}")
+
+    if not boucle:
+        tour()
+        return 0
+    note(f"surveillance — seuil {seuil:.0f}%, tour toutes les {intervalle / 60:.0f} min"
+         + ("" if go else "  [SIMULATION]"))
+    try:
+        while True:
+            tour()
+            time.sleep(intervalle)
+    except KeyboardInterrupt:
+        note("surveillance arrêtée")
+    return 0
+
+
+def cmd_link(c: dict, args: list[str]) -> int:
+    """Relie les ressources partagées des profils nommés vers le profil défaut.
+
+    L'IDENTITÉ (.credentials.json, .claude.json, sessions/) reste séparée —
+    c'est elle qui rend les panneaux étanches. Le TRAVAIL est partagé, et c'est
+    `projects/` qui permet à `--resume` de retrouver le même fil d'un compte à
+    l'autre. Idempotent : à relancer après avoir ajouté des skills ou agents.
+    """
+    source = HOME / ".claude"
+    for nom, racine in profils(c).items():
+        if est_defaut(c, nom):
+            continue
+        print(f"{nom} → {racine}")
+        racine.mkdir(parents=True, exist_ok=True)
+        for item in PARTAGE:
+            src, dst = source / item, racine / item
+            if not src.exists():
+                continue
+            if dst.is_symlink():
+                if os.readlink(dst) == str(src):
+                    print(f"  ok      {item}")
+                    continue
+                dst.unlink()
+            elif dst.exists():
+                dst.rename(racine / f"{item}.remplace-{int(time.time())}")
+                print(f"  sauvé   {item} (copie locale mise de côté)")
+            dst.symlink_to(src)
+            print(f"  lié     {item}")
+    return 0
+
+
+def cmd_default(c: dict, args: list[str]) -> int:
+    noms = [a for a in args if not a.startswith("-")]
+    if len(noms) != 1 or noms[0] not in c["accounts"]:
+        print(f"usage : claude-accounts default <{('|'.join(c['accounts']))}>")
+        print(f"actuel : {compte_actif(c)}")
+        return 2
+    ecrire(ETAT, {**lire(ETAT), "default": noms[0]})
+    print(f"`claude` seul → {noms[0]} (dans tout nouveau shell)")
+    return 0
+
+
+COMMANDES = {"status": cmd_status, "sessions": cmd_sessions, "switch": cmd_switch,
+             "auto": cmd_auto, "link": cmd_link, "default": cmd_default}
+
+
+def main() -> int:
+    args = sys.argv[1:]
+    if not args or args[0] in ("-h", "--help") or args[0] not in COMMANDES:
+        print(__doc__.split("--- Pourquoi")[0].strip())
+        return 0 if args and args[0] in ("-h", "--help") else 2
+    return COMMANDES[args[0]](config(), args[1:])
+
+
+if __name__ == "__main__":
+    sys.exit(main())
