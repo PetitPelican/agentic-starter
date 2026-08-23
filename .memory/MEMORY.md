@@ -1,8 +1,17 @@
 # Index mémoire — [PROJECT_NAME]
+_Dernière mise à jour : YYYY-MM-DD_
 
 > Taxonomie générique : un fichier = un axe, sans redite. **Frontière public/privé** : les fichiers publics peuvent alimenter le site de doc (`/publish-docs`) ; `operations.md` est **privé** et n'est jamais publié.
 
 **Stratégie de lecture** — en **début de session**, lire le contexte court/fort signal : `charter`, `rules`, `state` (+ cet index). Lire **à la demande** quand la tâche l'exige : `architecture` (avant de toucher au code/structure), `decisions` (tracer un choix), `operations` (déployer/déboguer). `state.md` = snapshot roulant borné, pas un journal.
+
+**Fraîcheur** — chaque fichier porte `_Dernière mise à jour_`. Une note de trois
+semaines est affirmée avec exactement le même aplomb qu'une note d'hier : c'est
+le principal piège de cette mémoire, car **l'oubli n'y est pas visible de
+l'intérieur**. Au-delà de **4 semaines**, vérifie dans le code avant de t'appuyer
+dessus pour une affirmation structurelle (architecture, modèle de données,
+procédure d'exploitation) — puis corrige le fichier si la réalité a bougé.
+`state.md` est le plus volatil : périmé, il égare plus vite que les autres.
 
 ## Public — alimente le site de doc
 

@@ -13,7 +13,7 @@ Agis comme agent mémoire du projet. Ton rôle : maintenir les fichiers `.memory
 
 2. **Lis le git log depuis la dernière mise à jour**
    ```
-   git log --oneline --since="$(grep 'Dernière mise à jour' .memory/state.md | head -1 | grep -oP '\d{4}-\d{2}-\d{2}')"
+   git log --oneline --since="$(grep 'Dernière mise à jour' .memory/state.md | head -1 | grep -oE '[0-9]{4}-[0-9]{2}-[0-9]{2}')"
    ```
    Si la date est introuvable, utilise les 20 derniers commits.
 
@@ -36,7 +36,9 @@ Agis comme agent mémoire du projet. Ton rôle : maintenir les fichiers `.memory
    - Hébergement, déploiement, secrets, dépannage → `operations.md` (🔒 privé)
    - Nouveau fichier mémoire créé → ajouter une ligne dans `MEMORY.md`
 
-6. **Mets à jour la date** `_Dernière mise à jour_` dans chaque fichier modifié.
+6. **Mets à jour la date** `_Dernière mise à jour_` dans chaque fichier modifié,
+   **`MEMORY.md` compris** — c'est lui qui porte la règle de fraîcheur, une date
+   périmée sur l'index décrédibiliserait la consigne qu'il donne aux autres.
 
 7. **Journal de bord quotidien** — `logs/<AAAA-MM-JJ>.md` (committé, **append-only**) :
    - Ajoute une **section horodatée** (`## HH:MM — <titre court>`) résumant ce qui a été fait **dans cette session** : features/tâches livrées, décisions prises, fichiers/objets modifiés, points ouverts.
