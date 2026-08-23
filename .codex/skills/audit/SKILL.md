@@ -20,7 +20,9 @@ provider de paiements). 3 volets, ~40 points de contrôle. Complète les `/code-
 1. **Cartographie (une fois)** : lister tous les fichiers source (hors `node_modules`, `dist`,
    `.next`, `.expo`, `.turbo`, `generated`, lock files). Lire chaque fichier **intégralement**.
 2. **Lancer les dimensions.** Idéalement **en parallèle via des sous-agents** (Task tool, un
-   sous-agent par dimension A1…C3, **mode caveman**) ou via `/workflows` ; sinon séquentiellement.
+   sous-agent par dimension A1…C3) ou via `/workflows` ; sinon séquentiellement. Ne pas leur
+   imposer le mode caveman : ces rapports sont relus et agrégés, l'ambiguïté y coûte plus cher
+   que les tokens économisés.
    Chaque dimension produit un rapport `AUDIT_<VOLET>_<CODE>.md`.
 3. **Synthèse** (voir plus bas) une fois toutes les dimensions terminées.
 

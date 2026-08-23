@@ -50,7 +50,7 @@ L'utilisateur définit le "quoi" et le "pourquoi", tu décides du "comment" et t
 <!-- Projets paiements -->
 <!-- 7. **Clés restreintes** — `restricted keys` uniquement en prod. Toujours valider la signature des webhooks. -->
 
-1. **Agents caveman** — tout sous-agent lancé doit opérer en mode caveman : réponses compressées, fragments OK, substance technique exacte. Ne jamais invoquer un agent sans cette consigne.
+1. **Sous-agents** — leur donner un objectif, un périmètre et un **format de retour** explicites. Le mode `/caveman` reste disponible à la demande, mais ne l'impose pas à un sous-agent qui **rapporte des constats** : un rapport relu par un autre agent doit être sans ambiguïté avant d'être court. La compression utile porte sur le contexte d'entrée (voir la stratégie de lecture de `.memory/MEMORY.md`), pas sur le style de sortie.
 2. **Secrets** — ne jamais écrire un token, clé API ou secret en clair dans un fichier commité. Toujours utiliser une variable d'environnement dans un fichier `.env*.local` (gitignored).
 3. [RÈGLE ADAPTÉE AU PROJET]
 
