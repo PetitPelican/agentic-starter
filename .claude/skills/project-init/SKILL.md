@@ -5,6 +5,7 @@ description: >
   Scanne tous types de fichiers, détecte la stack, suggère MCPs/CLIs, pose 6 questions,
   personnalise CLAUDE.md (rôle, règles adaptées), pré-remplit les fichiers mémoire,
   propose le site de doc (/publish-docs).
+  Reprenable : chaque phase teste si elle est déjà faite. `/project-init --verifier` = état, lecture seule.
   Trigger: /project-init ou "initialise ce projet"
 ---
 
@@ -51,6 +52,60 @@ En mode **projet existant** :
 
 ---
 
+## Reprise et idempotence
+
+`project-init` est **reprenable**. Chaque phase commence par un test bon marché
+qui dit si elle est déjà faite : un agent qui dévie au milieu d'une init ne
+laisse plus un dépôt à moitié configuré sans moyen de savoir quoi.
+
+La vérité vient du **système de fichiers**, jamais d'un fichier d'état — un état
+ment dès qu'on touche au dépôt à la main. Les seules décisions non déductibles
+des fichiers (choix du harnais, refus du site) sont consignées dans
+`.memory/decisions.md`, dont c'est déjà le rôle.
+
+**Au lancement, exécute la grille et affiche-la AVANT toute action :**
+
+| Phase | Faite si | Sinon |
+|---|---|---|
+| 0 — harnais | un seul harnais présent, **ou** choix consigné dans `decisions.md` | reposer la question |
+| 1 — scan | *rien à mémoriser* — toujours refait, c'est peu coûteux | — |
+| 2 — questions | bloc `## Initialisation` dans `.memory/decisions.md` | reposer **uniquement** les questions manquantes |
+| 3 — contexte | plus aucun `[PROJECT_NAME]` dans le(s) fichier(s) de contexte | remplacer ce qui reste |
+| 3 — mémoire | plus aucun `[PROJECT_NAME]` dans `.memory/*.md` | traiter fichier par fichier |
+| 3 — site | `site/_content/example/` absent, **ou** refus consigné | reproposer |
+| 4 — permissions | `defaultMode: bypassPermissions` dans `.claude/settings.local.json` | l'ajouter |
+
+```bash
+grep -rl "\[PROJECT_NAME\]" CLAUDE.md AGENTS.md .memory/*.md 2>/dev/null
+ls -d .claude .codex site/_content/example 2>/dev/null
+grep -q "bypassPermissions" .claude/settings.local.json 2>/dev/null && echo "phase 4 ok"
+grep -q "^## Initialisation" .memory/decisions.md 2>/dev/null && echo "phase 2 ok"
+```
+
+Affichage attendu :
+
+```
+  Phase 0  harnais       ✅ Codex retiré
+  Phase 1  scan          ↻ à refaire (rapide)
+  Phase 2  questions     ✅ 6/6 consignées dans decisions.md
+  Phase 3  contexte      ⏳ CLAUDE.md ok · .memory/ : 4 fichiers avec [PROJECT_NAME]
+  Phase 4  permissions   ⏳ à appliquer
+
+  → reprise en phase 3
+```
+
+**Règles absolues.** Ne redemande jamais une réponse déjà consignée. Ne refais
+jamais une phase marquée ✅. Toute phase relancée sur un projet déjà initialisé
+doit être **sans effet** — comme l'est `agentic-upgrade`.
+
+### `/project-init --verifier`
+
+Même grille, **lecture seule** : n'exécute aucune phase, affiche l'état, et
+s'arrête. Sert à constater qu'une init est complète, et de test de
+non-régression au skill lui-même.
+
+---
+
 ## Phase 0 — Choix du/des agent(s)
 
 Avant tout, demande à l'utilisateur quel(s) assistant(s) il compte utiliser sur ce projet :
@@ -81,6 +136,10 @@ Remove-Item -Recurse -Force .claude, CLAUDE.md
 Pour la suite de l'init, ne personnalise et ne cite que le(s) fichier(s) de contexte conservé(s) (`CLAUDE.md` et/ou `AGENTS.md`).
 
 > Note : si tu es en train d'exécuter ce skill, c'est que le harnais courant existe. Ne supprime jamais le harnais depuis lequel tu tournes sans confirmation explicite (ex. Codex ne s'auto-supprime pas `.codex/` s'il l'utilise).
+
+**Consigne le choix** dans `.memory/decisions.md` (bloc `## Initialisation`, créé
+s'il manque) : c'est la seule façon de distinguer « les deux harnais retenus »
+de « la phase 0 n'a jamais tourné ».
 
 ---
 
@@ -212,6 +271,25 @@ Si un service est détecté mais son MCP n'est pas dans `.mcp.json`, suggère-le
 "Y a-t-il des contraintes spécifiques ?" (plusieurs réponses) :
 `multi-tenant` · `RBAC strict` · `conformité RGPD` · `conformité SOC2` · `budget infra limité` · `pas de git` · `pas d'IA dans le produit` · `déploiement on-premise` · `autre`
 
+**Consigner les six réponses.** Avant de passer en phase 3, écris dans
+`.memory/decisions.md` un bloc :
+
+```markdown
+## Initialisation
+
+- harnais : Claude Code | Codex | les deux
+- Q1 nom / description : …
+- Q2 rôle : …
+- Q3 type de projet : …
+- Q4 domaines : …
+- Q5 outils : …
+- Q6 contraintes : …
+- site de doc : oui | refusé le AAAA-MM-JJ
+```
+
+Sans ce bloc, une reprise redemanderait les six questions. Il rend aussi les
+décisions d'init relisibles bien après, ce que `decisions.md` est fait pour.
+
 ---
 
 ## Phase 3 — Personnalisation
@@ -274,7 +352,7 @@ Pour chaque MCP suggéré mais absent de `.mcp.json`, générer le bloc JSON à 
 
 Proposer : « Veux-tu un **site de documentation Quarto** (HTML + Word/PDF), généré depuis la mémoire ? »
 - Si **oui** → invoquer `/publish-docs init` avec `preset` déduit du type de projet (Q3 : data-pipeline→`data`, web-app→`web`, API→`api`, sinon `generic`), puis `/publish-docs setup` si Quarto/Graphviz manquent.
-- Si **non** → ne rien créer (le dossier `site/` reste absent ; on pourra le faire plus tard via `/publish-docs init`).
+- Si **non** → ne rien créer (le dossier `site/` reste absent ; on pourra le faire plus tard via `/publish-docs init`). **Consigner le refus** dans le bloc `## Initialisation` de `decisions.md`, sinon chaque reprise reproposera le site.
 
 ---
 
