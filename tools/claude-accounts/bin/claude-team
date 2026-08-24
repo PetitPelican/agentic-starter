@@ -1,0 +1,303 @@
+#!/usr/bin/python3
+"""Agentic Team — une page HTML autonome montrant l'équipe d'agents.
+
+    claude-team [--out FICHIER] [--operations]
+
+Un Clawd par agent AUTONOME — c'est-à-dire détaché dans un panneau tmux, donc
+survivant à la déconnexion. Une session lancée en SSH direct est de passage :
+elle ne figure pas sur la carte.
+
+Rassemble, par projet : les agents en cours (nom, modèle, statut), le rôle tiré
+du CLAUDE.md, et les deux mémoires — celle du dépôt (`.memory/`) et la mémoire
+auto de Claude Code (`~/.claude/projects/<chemin>/memory/`).
+
+`operations.md` est EXCLU par défaut : la taxonomie du starter le marque privé
+et `/publish-docs` ne le lit jamais. `--operations` force son inclusion.
+
+Shebang /usr/bin/python3 en dur : voir claude-dashboard.
+"""
+import json, os, pathlib, re, subprocess, sys, time
+from datetime import datetime, timezone
+
+HOME = pathlib.Path.home()
+CONFIG = pathlib.Path(os.environ.get("CLAUDE_ACCOUNTS_CONFIG",
+                                    HOME / ".config" / "claude-accounts" / "accounts.json"))
+GABARIT = pathlib.Path(__file__).with_name("claude-team.html.in")
+
+
+def profils():
+    """nom de compte → dossier de profil, d'après accounts.json.
+
+    Le compte marqué `"profile": "default"` vit dans ~/.claude, et son
+    .claude.json se trouve à CÔTÉ du dossier — voir le README, piège n° 2."""
+    try:
+        comptes = json.loads(CONFIG.read_text()).get("accounts") or {}
+    except Exception:
+        comptes = {}
+    if not comptes:
+        raise SystemExit(f"config absente ou vide : {CONFIG}")
+    return {n: (HOME / ".claude" if v.get("profile", "default") == "default"
+                else pathlib.Path(v["profile"]).expanduser())
+            for n, v in comptes.items()}
+
+
+def est_defaut(nom):
+    try:
+        return (json.loads(CONFIG.read_text())["accounts"][nom]
+                .get("profile", "default")) == "default"
+    except Exception:
+        return False
+
+
+def lire(p):
+    try:
+        return json.loads(pathlib.Path(p).read_text())
+    except Exception:
+        return {}
+
+
+def texte(p):
+    try:
+        return pathlib.Path(p).read_text(errors="replace")
+    except Exception:
+        return ""
+
+
+def slug(chemin):
+    """Chemin → nom du dossier de mémoire auto (`/a/b` → `-a-b`)."""
+    return re.sub(r"[^A-Za-z0-9]", "-", str(chemin))
+
+
+def ancetres(pid):
+    chaine, vu = [], set()
+    while pid and pid > 1 and pid not in vu:
+        vu.add(pid); chaine.append(pid)
+        r = subprocess.run(["ps", "-o", "ppid=", "-p", str(pid)], capture_output=True, text=True)
+        try:
+            pid = int(r.stdout.strip())
+        except ValueError:
+            break
+    return chaine
+
+
+def sockets():
+    vus = []
+    for base in (f"/tmp/tmux-{os.getuid()}", f"/private/tmp/tmux-{os.getuid()}"):
+        if os.path.isdir(base):
+            for f in sorted(pathlib.Path(base).glob("*")):
+                r = subprocess.run(["tmux", "-L", f.name, "list-panes", "-a"],
+                                   capture_output=True, text=True)
+                if f.name not in vus and r.returncode == 0:
+                    vus.append(f.name)
+    return vus
+
+
+def panneaux():
+    out = []
+    for s in sockets():
+        r = subprocess.run(["tmux", "-L", s, "list-panes", "-a", "-F",
+                            "#{pane_pid}\t#{session_name}"], capture_output=True, text=True)
+        for l in r.stdout.splitlines():
+            pid, sess = (l.split("\t") + ["", ""])[:2]
+            try:
+                out.append((s, int(pid), sess))
+            except ValueError:
+                pass
+    return out
+
+
+def modele(cwd, sid):
+    """Dernier modèle vu dans le transcript — l'enregistrement de session ne le porte pas."""
+    f = HOME / ".claude" / "projects" / slug(cwd) / f"{sid}.jsonl"
+    if not f.exists():
+        return None
+    try:
+        with f.open("rb") as fh:
+            fh.seek(0, 2)
+            fh.seek(max(0, fh.tell() - 400_000))
+            lignes = fh.read().split(b"\n")
+    except OSError:
+        return None
+    for l in reversed(lignes):
+        try:
+            m = (json.loads(l).get("message") or {}).get("model")
+        except Exception:
+            continue
+        if m:
+            return m
+    return None
+
+
+def agents():
+    pans = panneaux()
+    out = []
+    for compte, racine in profils().items():
+        for f in sorted((racine / "sessions").glob("*.json")):
+            d = lire(f)
+            pid = d.get("pid")
+            if not pid:
+                continue
+            try:
+                os.kill(pid, 0)
+            except OSError:
+                continue
+            lignee = ancetres(pid)
+            place = next((p for p in pans if p[1] in lignee), None)
+            out.append({
+                "nom": d.get("name") or "?", "cwd": d.get("cwd", ""),
+                "statut": d.get("status", "?"), "compte": compte,
+                "pont": bool(d.get("bridgeSessionId")), "sid": d.get("sessionId", ""),
+                "modele": modele(d.get("cwd", ""), d.get("sessionId", "")),
+                "socket": place[0] if place else None,
+                "session": place[2] if place else None,
+            })
+    return out
+
+
+DATE = re.compile(r"(20\d\d-\d\d-\d\d)")
+
+
+def fraicheur(contenu, chemin):
+    """Âge en jours : d'abord la date déclarée, sinon la mtime du fichier."""
+    for ligne in contenu.splitlines()[:8]:
+        if "ise à jour" in ligne or "modified:" in ligne:
+            m = DATE.search(ligne)
+            if m:
+                try:
+                    d = datetime.strptime(m.group(1), "%Y-%m-%d").replace(tzinfo=timezone.utc)
+                    return (datetime.now(timezone.utc) - d).days, m.group(1), "déclarée"
+                except ValueError:
+                    pass
+    try:
+        t = datetime.fromtimestamp(pathlib.Path(chemin).stat().st_mtime, timezone.utc)
+        return (datetime.now(timezone.utc) - t).days, t.strftime("%Y-%m-%d"), "fichier"
+    except OSError:
+        return None, None, None
+
+
+def role(claude_md):
+    """La section « Rôle » du CLAUDE.md, en clair."""
+    m = re.search(r"^##+\s*R[ôo]le\s*$(.+?)(?=^##\s|\Z)", claude_md, re.M | re.S)
+    if not m:
+        return None
+    lignes = [l.strip() for l in m.group(1).strip().splitlines() if l.strip()]
+    return " ".join(lignes[:4])[:400] or None
+
+
+def regles(claude_md):
+    m = re.search(r"^##+\s*R[èe]gles\s*$(.+?)(?=^##\s|\Z)", claude_md, re.M | re.S)
+    if not m:
+        return []
+    return re.findall(r"^\d+\.\s+\*\*(.+?)\*\*", m.group(1), re.M)
+
+
+USAGE_URL = "https://api.anthropic.com/api/oauth/usage"
+
+
+def usage(racine):
+    """Fenêtres 5 h / 7 j d'un compte. L'endpoint a son propre budget de
+    requêtes : on l'interroge une fois par génération, pas davantage."""
+    import urllib.error, urllib.request
+    jeton = (lire(racine / ".credentials.json").get("claudeAiOauth") or {}).get("accessToken")
+    if not jeton:
+        return None
+    req = urllib.request.Request(USAGE_URL, headers={
+        "Authorization": f"Bearer {jeton}", "anthropic-beta": "oauth-2025-04-20",
+        "User-Agent": "claude-cadrage/1.0"})
+    try:
+        with urllib.request.urlopen(req, timeout=8) as r:
+            d = json.loads(r.read().decode())
+    except Exception:
+        return None
+    out = {}
+    for cle, nom in (("five_hour", "h5"), ("seven_day", "j7")):
+        f = d.get(cle) or {}
+        if f.get("utilization") is None:
+            continue
+        reste = None
+        if f.get("resets_at"):
+            try:
+                t = datetime.fromisoformat(f["resets_at"].replace("Z", "+00:00"))
+                reste = (t - datetime.now(timezone.utc)).total_seconds()
+            except Exception:
+                pass
+        out[nom] = {"pct": float(f["utilization"]), "reste": reste}
+    return out or None
+
+
+def collecte(avec_operations):
+    # Seuls les agents AUTONOMES : ceux qui tournent dans un panneau tmux et
+    # survivent donc à la déconnexion. Une session lancée en SSH direct (comme
+    # celle qui génère cette page) n'est pas un agent de l'équipe, elle est de
+    # passage — et un projet sans agent n'a rien à faire sur une carte des
+    # agents en cours.
+    ags = [a for a in agents() if a.get("socket") and a.get("session")]
+    par_projet = {}
+    for a in ags:
+        par_projet.setdefault(a["cwd"], []).append(a)
+
+    dossiers = sorted(par_projet)
+
+    projets = []
+    for chemin in dossiers:
+        p = pathlib.Path(chemin)
+        ags_p = par_projet.get(chemin, [])
+        cmd = texte(p / "CLAUDE.md")
+        memoire = []
+        for src, dossier in (("projet", p / ".memory"),
+                             ("auto", HOME / ".claude" / "projects" / slug(chemin) / "memory")):
+            if not dossier.is_dir():
+                continue
+            for f in sorted(dossier.glob("*.md")):
+                prive = f.name == "operations.md"
+                if prive and not avec_operations:
+                    memoire.append({"src": src, "nom": f.name, "prive": True,
+                                    "jours": None, "date": None, "origine": None,
+                                    "octets": f.stat().st_size, "contenu": None})
+                    continue
+                c = texte(f)
+                j, d, o = fraicheur(c, f)
+                memoire.append({"src": src, "nom": f.name, "prive": prive,
+                                "jours": j, "date": d, "origine": o,
+                                "octets": len(c.encode()), "contenu": c})
+        if not ags_p:
+            continue
+        # Le home n'est pas un projet : c'est le poste, pas un projet.
+        nom = p.name
+        projets.append({
+            "chemin": chemin, "nom": nom, "agents": ags_p,
+            "claude_md": cmd or None, "role": role(cmd), "regles": regles(cmd),
+            "memoire": memoire,
+        })
+    projets.sort(key=lambda x: (not x["agents"], x["nom"].lower()))
+    comptes = []
+    for nom, racine in profils().items():
+        cfg = lire(HOME / ".claude.json" if est_defaut(nom) else racine / ".claude.json")
+        comptes.append({"nom": nom,
+                        "mail": (cfg.get("oauthAccount") or {}).get("emailAddress"),
+                        "usage": usage(racine)})
+
+    return {"comptes": comptes,
+            "genere": datetime.now().strftime("%d/%m/%Y à %H:%M"),
+            "machine": os.uname().nodename.split(".")[0],
+            "operations_incluses": avec_operations, "projets": projets}
+
+
+def main():
+    args = sys.argv[1:]
+    sortie = pathlib.Path(args[args.index("--out") + 1]) if "--out" in args \
+        else pathlib.Path.cwd() / "agentic-team.html"
+    data = collecte("--operations" in args)
+    if not GABARIT.exists():
+        sys.exit(f"gabarit introuvable : {GABARIT}")
+    # `</script>` dans un contenu casserait le bloc JSON : on neutralise `<`.
+    charge = json.dumps(data, ensure_ascii=False).replace("<", "\\u003c")
+    sortie.write_text(GABARIT.read_text().replace("/*__DONNEES__*/", charge))
+    n = sum(len(p["agents"]) for p in data["projets"])
+    print(f"{sortie}  —  {len(data['projets'])} projets, {n} agents, "
+          f"{sortie.stat().st_size // 1024} Ko")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

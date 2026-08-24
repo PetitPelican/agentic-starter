@@ -180,6 +180,7 @@ Puis déclarer ses comptes dans `~/.config/claude-accounts/accounts.json` :
 | `tls` | sessions tmux, **tous sockets**, et leur contenu |
 | `cacc switch <compte> --go` | déplace tous les agents vers un compte |
 | `cacc auto --watch --go` | bascule automatique au seuil de quota |
+| `claude-team --out page.html` | page HTML « Agentic Team » : l'équipe d'agents en un écran |
 
 **Le principe.** `CLAUDE_CONFIG_DIR` est une variable d'environnement : donc par
 processus, donc par panneau tmux. Chaque compte a son propre

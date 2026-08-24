@@ -58,6 +58,7 @@ cwho           # vérification
 | `cacc default <compte>` | choisit le compte que donne `claude` seul |
 | `cacc link` | (re)crée les ressources partagées entre profils |
 | `pilote` | rejoint (ou crée) la session tmux servant de poste de commande |
+| `claude-team --out page.html` | **Agentic Team** : une page HTML de l'équipe d'agents |
 
 ---
 
@@ -207,3 +208,41 @@ un panneau qui exécute pourtant un agent. La vérité vient des enregistrements
 Depuis un agent Claude Code, préférer le nom complet `claude-accounts …` : les
 raccourcis courts dépendent de l'instantané de shell pris au démarrage de
 l'agent, et peuvent manquer.
+
+---
+
+## Agentic Team — la page
+
+    claude-team --out agentic-team.html
+
+Une page autonome, sans dépendance et sans défilement, montrant l'**équipe
+d'agents** : un personnage par agent, son anneau de mémoire, et le détail au clic.
+
+**Qui y figure.** Seulement les agents **autonomes** — détachés dans un panneau
+tmux, donc survivant à la déconnexion. Une session lancée en SSH direct est de
+passage : elle n'est pas membre de l'équipe. Un projet sans agent en cours n'y
+figure pas non plus : c'est une carte des agents, pas des dépôts.
+
+**Ce qu'on lit sans cliquer.**
+
+| Élément | Signification |
+|---|---|
+| l'anneau | un segment = un fichier mémoire ; la couleur = son âge |
+| anneau pointillé vide | aucune mémoire — l'agent repart de zéro chaque session |
+| le regard | propre à chaque agent, tiré de son nom ; yeux clos = endormi |
+| au survol | le regard change — l'agent réagit |
+| le bandeau | agents, modèles, total mémoire, fichiers périmés, quotas |
+
+**Au clic**, une fiche donne le rôle extrait du `CLAUDE.md`, les règles actives,
+et les deux mémoires séparées : celle du dépôt (versionnée, partagée) et la
+mémoire auto de Claude Code (locale, invisible aux autres).
+
+`operations.md` est **exclu** par défaut — la taxonomie du starter le marque
+privé. `--operations` force son inclusion.
+
+**Attention avant de partager la page** : elle embarque le contenu des fichiers
+mémoire. Relire ce qu'elle contient avant de la publier ailleurs que chez soi.
+
+Les seuils de fraîcheur (7 j, 28 j) reprennent la règle de `.memory/MEMORY.md` :
+au-delà de 4 semaines, vérifier dans le code avant de s'appuyer sur une
+affirmation structurelle.

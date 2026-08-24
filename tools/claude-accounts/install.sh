@@ -17,9 +17,12 @@ LIGNE="source $PART/accounts.zsh"
 mkdir -p "$BIN" "$PART" "$CONF"
 
 cp "$ICI/bin/claude-accounts" "$BIN/claude-accounts"
-chmod +x "$BIN/claude-accounts"
+cp "$ICI/bin/claude-team" "$BIN/claude-team"
+cp "$ICI/bin/claude-team.html.in" "$BIN/claude-team.html.in"
+chmod +x "$BIN/claude-accounts" "$BIN/claude-team"
 cp "$ICI/shell/accounts.zsh" "$PART/accounts.zsh"
 echo "installé : $BIN/claude-accounts"
+echo "installé : $BIN/claude-team"
 echo "installé : $PART/accounts.zsh"
 
 if [ -f "$CONF/accounts.json" ]; then

@@ -1,0 +1,520 @@
+<title>Agentic Team</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600&family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap">
+
+<style>
+/* Direction artistique Anthropic : ivoire, encre chaude, orange Claude.
+   Thème unique assumé — la page vit sur son ivoire quelle que soit la
+   préférence de l'hôte, d'où un `background` peint explicitement sur body. */
+:root{
+  --ivoire:#F0EEE6; --creme:#FAF9F5; --sable:#E5E2D8; --lisere:#D7D3C6;
+  --encre:#141413; --encre-2:#4A4842; --encre-3:#7C7973;
+  --orange:#D97757; --orange-fonce:#B85B3E; --orange-pale:#F2DDD4;
+  --frais:#5B8266; --vieux:#C99A3C; --perime:#A63D2F; --absent:#C9C4B5;
+  --serif:"Source Serif 4",Georgia,serif;
+  --sans:"DM Sans","Helvetica Neue",Arial,sans-serif;
+  --mono:"DM Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+*{box-sizing:border-box}
+html,body{height:100%; overflow:hidden}
+body{
+  margin:0; background:var(--ivoire); color:var(--encre);
+  font-family:var(--sans); -webkit-font-smoothing:antialiased;
+}
+
+#plateau{position:fixed; inset:0 0 0 var(--bandeau)}
+:root{--bandeau:248px}
+@media(max-width:900px){ :root{--bandeau:0px} #plateau{inset:0 0 96px 0} }
+#carte{width:100%; height:100%; display:block}
+
+/* ── personnages ─────────────────────────────────────────────────── */
+.noeud{cursor:pointer}
+.noeud:focus{outline:none}
+.noeud .halo{fill:transparent; transition:fill .2s}
+.noeud:hover .halo,.noeud:focus-visible .halo{fill:rgba(217,119,87,.10)}
+.clawd{transition:opacity .12s steps(1)}
+.clawd.eveil{opacity:0}
+.noeud:hover .clawd.repos,.noeud:focus-visible .clawd.repos{opacity:0}
+.noeud:hover .clawd.eveil,.noeud:focus-visible .clawd.eveil{opacity:1}
+.noeud .nom{
+  font-family:var(--serif); font-weight:600; fill:var(--encre);
+  text-anchor:middle; transition:fill .2s;
+}
+.noeud:hover .nom{fill:var(--orange-fonce)}
+.noeud .modele{font-family:var(--mono); fill:var(--encre-3); text-anchor:middle}
+.lien{stroke:var(--lisere); fill:none}
+.orbite{fill:none; stroke:var(--lisere); stroke-dasharray:2 7; opacity:.75}
+.seg{transition:stroke-width .18s}
+.noeud:hover .seg{stroke-width:9}
+.piste-anneau{fill:none; stroke:var(--sable)}
+.depart{stroke:var(--lisere)}
+
+/* l'étincelle des agents actifs respire doucement */
+@keyframes souffle{0%,100%{opacity:.85; transform:scale(1)} 50%{opacity:1; transform:scale(1.14)}}
+.etincelle{animation:souffle 3.4s ease-in-out infinite; transform-box:fill-box; transform-origin:center}
+@keyframes monte{from{opacity:0; transform:translateY(12px) scale(.94)} to{opacity:1; transform:none}}
+.noeud{animation:monte .55s both cubic-bezier(.2,.7,.3,1); transform-box:fill-box; transform-origin:center}
+@keyframes trace{from{stroke-dashoffset:var(--len)} to{stroke-dashoffset:0}}
+.seg{animation:trace .75s both cubic-bezier(.3,.8,.4,1)}
+@media (prefers-reduced-motion:reduce){ .noeud,.seg,.etincelle{animation:none} *{transition:none !important} }
+
+/* ── chrome ──────────────────────────────────────────────────────── */
+/* Bandeau : les repères chiffrés, pour que la carte reste une carte. */
+#bandeau{
+  position:fixed; top:0; left:0; bottom:0; width:var(--bandeau); z-index:2;
+  background:var(--creme); border-right:1px solid var(--lisere);
+  padding:24px 20px; display:flex; flex-direction:column; gap:20px; overflow:hidden;
+}
+@media(max-width:900px){
+  #bandeau{top:auto; width:100%; height:96px; border-right:none;
+    border-top:1px solid var(--lisere); flex-direction:row; align-items:center;
+    gap:22px; padding:0 18px; overflow-x:auto}
+  #bandeau .pliable{display:none}
+}
+.kpi{display:flex; flex-direction:column; gap:5px; flex:none}
+.kpi-titre{font-family:var(--mono); font-size:9.5px; text-transform:uppercase;
+  letter-spacing:.13em; color:var(--encre-3)}
+.kpi-valeur{font-family:var(--serif); font-weight:600; font-size:27px; line-height:1}
+.kpi-detail{font-family:var(--mono); font-size:10.5px; color:var(--encre-3); line-height:1.5}
+.repartition{display:flex; height:6px; border-radius:3px; overflow:hidden; margin-top:3px}
+.repartition span{display:block}
+.compte{display:flex; flex-direction:column; gap:4px; margin-top:9px}
+.compte-nom{font-family:var(--mono); font-size:10.5px; color:var(--encre-2)}
+.mini{display:flex; align-items:center; gap:6px; font-family:var(--mono); font-size:9.5px; color:var(--encre-3)}
+.mini .piste{flex:1; height:4px; background:var(--sable); border-radius:2px; overflow:hidden}
+.mini .jauge{display:block; height:100%; border-radius:2px}
+.alerte{font-size:11px; color:var(--perime); line-height:1.5; font-family:var(--sans)}
+.legende-anneau{font-family:var(--mono); font-size:9.5px; color:var(--encre-3); line-height:1.7}
+.legende-anneau i{display:inline-block; width:7px; height:7px; border-radius:2px; margin-right:5px; vertical-align:-1px}
+.marque{margin-top:auto; font-family:var(--mono); font-size:9.5px; color:var(--encre-3)}
+h1{font-family:var(--serif); font-weight:600; font-size:21px; margin:0; letter-spacing:-.01em}
+.sous{font-family:var(--mono); font-size:11px; color:var(--encre-3); margin-top:4px}
+.legende{display:flex; gap:15px; font-family:var(--mono); font-size:10.5px; color:var(--encre-3)}
+.legende i{display:inline-block; width:8px; height:8px; border-radius:2px; margin-right:5px; vertical-align:-1px}
+.alerte{font-size:11.5px; color:var(--perime); max-width:34ch; line-height:1.5}
+
+/* ── panneau ─────────────────────────────────────────────────────── */
+#panneau{
+  position:fixed; top:0; right:0; bottom:0; width:min(560px,100%);
+  background:var(--creme); border-left:1px solid var(--lisere);
+  box-shadow:-18px 0 44px rgba(20,20,19,.06);
+  transform:translateX(101%); transition:transform .34s cubic-bezier(.2,.7,.3,1);
+  z-index:5; display:flex; flex-direction:column;
+}
+body.ouvert #panneau{transform:none}
+@media (prefers-reduced-motion:reduce){ #panneau{transition:none} }
+.p-tete{padding:24px 28px 18px; border-bottom:1px solid var(--lisere); flex:none; display:flex; gap:16px}
+.p-tete h2{font-family:var(--serif); font-weight:600; font-size:25px; margin:0; letter-spacing:-.01em}
+.p-chemin{font-family:var(--mono); font-size:11px; color:var(--encre-3); margin-top:5px}
+.jetons{display:flex; gap:6px; flex-wrap:wrap; margin-top:13px}
+.jeton{
+  font-family:var(--mono); font-size:10px; letter-spacing:.04em; padding:3px 8px;
+  border:1px solid var(--lisere); border-radius:3px; color:var(--encre-2); background:var(--ivoire);
+}
+.j-idle{color:var(--frais); border-color:var(--frais)}
+.j-busy{color:var(--vieux); border-color:var(--vieux)}
+#fermer{
+  position:absolute; top:20px; right:22px; background:none; border:none; cursor:pointer;
+  color:var(--encre-3); font-size:17px; line-height:1; padding:6px; font-family:var(--sans);
+}
+#fermer:hover{color:var(--encre)}
+#fermer:focus-visible{outline:1.5px solid var(--orange); outline-offset:2px}
+
+.p-corps{flex:1; overflow-y:auto; padding:22px 28px 44px}
+.section{margin-bottom:28px}
+.section-titre{
+  font-family:var(--mono); font-size:10px; text-transform:uppercase; letter-spacing:.11em;
+  color:var(--encre-3); padding-bottom:7px; border-bottom:1px solid var(--lisere);
+  margin-bottom:13px; display:flex; justify-content:space-between; gap:10px;
+}
+.role{font-family:var(--serif); font-size:18px; line-height:1.5; margin:0; max-width:56ch}
+.role.manque{color:var(--perime)}
+.regles{display:flex; flex-wrap:wrap; gap:6px; margin:13px 0 0; padding:0; list-style:none}
+.regles li{font-size:11.5px; padding:3px 9px; background:var(--orange-pale);
+           color:var(--orange-fonce); border-radius:3px}
+
+details{border-bottom:1px solid var(--lisere)}
+summary{display:flex; align-items:center; gap:10px; padding:10px 2px; cursor:pointer;
+        font-size:12.5px; list-style:none; font-family:var(--mono)}
+summary::-webkit-details-marker{display:none}
+summary:hover{color:var(--orange-fonce)}
+summary:focus-visible{outline:1.5px solid var(--orange); outline-offset:-1px}
+.point{width:7px; height:7px; border-radius:2px; flex:none}
+.age{margin-left:auto; font-size:10.5px; color:var(--encre-3)}
+.corps{padding:2px 0 20px 17px; font-size:13.5px; line-height:1.65; color:var(--encre-2); max-width:62ch}
+.corps h1,.corps h2,.corps h3{font-family:var(--serif); color:var(--encre); margin:17px 0 6px; line-height:1.3}
+.corps h1{font-size:17px} .corps h2{font-size:15.5px} .corps h3{font-size:14px}
+.corps p{margin:8px 0} .corps ul,.corps ol{margin:8px 0; padding-left:18px}
+.corps code{background:var(--sable); padding:1px 5px; border-radius:3px;
+            font-family:var(--mono); font-size:11.5px; color:var(--orange-fonce)}
+.corps pre{background:var(--sable); padding:11px 13px; border-radius:4px; overflow-x:auto; margin:10px 0}
+.corps pre code{background:none; padding:0; color:var(--encre-2)}
+.corps blockquote{margin:10px 0; padding-left:12px; border-left:2px solid var(--orange);
+                  color:var(--encre-3)}
+.corps a{color:var(--orange-fonce)}
+.corps hr{border:none; border-top:1px solid var(--lisere); margin:15px 0}
+.prive{padding:10px 0 17px 17px; font-size:12px; color:var(--encre-3); line-height:1.6}
+.note{font-size:11.5px; color:var(--encre-3); line-height:1.6; margin:-4px 0 12px}
+</style>
+
+<div id="plateau"><svg id="carte" preserveAspectRatio="xMidYMid meet"></svg></div>
+
+<div id="bandeau">
+  <div class="kpi">
+    <h1>Agentic Team</h1>
+    <div class="kpi-detail" id="sous"></div>
+  </div>
+  <div class="kpi"><span class="kpi-titre">Agents détachés</span>
+    <span class="kpi-valeur" id="k-agents"></span>
+    <span class="kpi-detail" id="k-modeles"></span></div>
+  <div class="kpi"><span class="kpi-titre">Mémoire</span>
+    <span class="kpi-valeur" id="k-memoire"></span>
+    <span class="kpi-detail" id="k-fraicheur"></span>
+    <div class="repartition" id="k-repartition"></div></div>
+  <div class="kpi pliable"><span class="kpi-titre">Comptes</span>
+    <div id="k-comptes"></div></div>
+  <div class="kpi pliable"><span class="kpi-titre">Anneau</span>
+    <div class="legende-anneau">un segment = un fichier mémoire<br>
+      <i style="background:var(--frais)"></i>≤ 7 j
+      <i style="background:var(--vieux);margin-left:8px"></i>≤ 28 j
+      <i style="background:var(--perime);margin-left:8px"></i>au-delà</div></div>
+  <div class="alerte pliable" id="alerte"></div>
+  <div class="marque pliable" id="marque"></div>
+</div>
+
+<aside id="panneau" aria-hidden="true">
+  <button id="fermer" aria-label="Fermer">✕</button>
+  <div class="p-tete">
+    <svg id="p-tete-monstre" width="54" height="54" viewBox="0 0 100 100" aria-hidden="true"></svg>
+    <div>
+      <h2 id="p-nom"></h2>
+      <div class="p-chemin" id="p-chemin"></div>
+      <div class="jetons" id="p-jetons"></div>
+    </div>
+  </div>
+  <div class="p-corps" id="p-corps"></div>
+</aside>
+
+<script type="application/json" id="donnees">/*__DONNEES__*/</script>
+<script>
+const D = JSON.parse(document.getElementById('donnees').textContent);
+const NS = 'http://www.w3.org/2000/svg';
+const esc = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const court = (c) => c.replace(/^\/Users\/[^/]+/, '~');
+
+const rang = (j) => j == null ? 'absent' : j <= 7 ? 'frais' : j <= 28 ? 'vieux' : 'perime';
+const COUL = {frais:'var(--frais)', vieux:'var(--vieux)', perime:'var(--perime)', absent:'var(--absent)'};
+const age = (f) => f.prive ? 'privé' : f.jours == null ? '—'
+  : f.jours === 0 ? "auj." : f.jours === 1 ? 'hier' : f.jours + ' j';
+
+/* Empreinte stable d'un nom : le même agent garde toujours le même regard,
+   d'une génération de la page à l'autre. */
+function empreinte(s){
+  let h = 0;
+  for (const c of String(s)) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+  return h;
+}
+
+/* ── Clawd ────────────────────────────────────────────────────────────────
+   D'après l'illustration officielle (stickers Claude Code), pas d'après le
+   rendu terminal : là-bas les yeux sont des quadrants MANQUANTS, ici ce sont
+   des formes NOIRES posées sur le corps — ce qui change tout.
+
+   Silhouette : un bloc massif, une bande de bras qui dépasse de chaque côté à
+   hauteur des yeux, quatre pattes. Grille de 16 × 12, pixels carrés.          */
+const CORPS = 'rgb(215,119,87)';        // clawd_body, relevé dans le binaire
+const CORPS_DORT = '#C6C1B2';
+const OEIL = '#12100E';
+
+const CLAWD = [
+  "..XXXXXXXXXXXX..",
+  "..XXXXXXXXXXXX..",
+  "XXXXXXXXXXXXXXXX",   // bande de bras — les yeux vivent sur ces trois rangées
+  "XXXXXXXXXXXXXXXX",
+  "XXXXXXXXXXXXXXXX",
+  "..XXXXXXXXXXXX..",
+  "..XXXXXXXXXXXX..",
+  "..XXXXXXXXXXXX..",
+  "..XX.XX..XX.XX..",   // quatre pattes, sur deux rangées comme sur le sticker
+  "..XX.XX..XX.XX..",
+];
+
+/* Chaque variante donne les pixels de l'œil GAUCHE dans une boîte 3×3 ;
+   l'œil droit en est le miroir. Inspiré du jeu de stickers : carré, chevrons
+   « happy », paupières closes, clin d'œil, grands yeux, caret, point, croix. */
+const YEUX = {
+  carre:   [[0,0],[1,0],[0,1],[1,1]],
+  happy:   [[0,0],[1,1],[0,2]],
+  clos:    [[0,1],[1,1],[2,1]],
+  clin:    'special',
+  grands:  [[0,0],[1,0],[2,0],[0,1],[1,1],[2,1],[0,2],[1,2],[2,2]],
+  caret:   [[0,1],[1,0],[2,1]],
+  point:   [[1,1]],
+  croix:   [[0,0],[2,0],[1,1],[0,2],[2,2]],
+};
+const NOMS_YEUX = Object.keys(YEUX);
+
+/* Huit regards pour cinq agents : répartition par sondage à partir du nom,
+   pour que deux Clawd ne se ressemblent jamais. */
+const YEUX_PRIS = new Map();
+function yeuxDe(nom){
+  if (YEUX_PRIS.has(nom)) return YEUX_PRIS.get(nom);
+  const dep = empreinte(nom) % NOMS_YEUX.length;
+  const pris = new Set(YEUX_PRIS.values());
+  let choix = NOMS_YEUX[dep];
+  for (let i = 0; i < NOMS_YEUX.length; i++) {
+    const c = NOMS_YEUX[(dep + i) % NOMS_YEUX.length];
+    if (c !== 'clos' && !pris.has(c)) { choix = c; break; }
+  }
+  YEUX_PRIS.set(nom, choix);
+  return choix;
+}
+
+/* Repos = le regard propre à l'agent. Éveil = « happy », le regard du sticker :
+   au survol, le Clawd plisse les yeux. Les deux sont superposés et permutés. */
+function monstre(nom, etat, taille){
+  const v = etat === 'dort' ? 'clos' : yeuxDe(nom);
+  const eveil = etat === 'dort' ? 'clos' : (v === 'happy' ? 'grands' : 'happy');
+  return `<g class="clawd repos">${sprite(etat, taille, v)}</g>`
+       + `<g class="clawd eveil">${sprite(etat, taille, eveil)}</g>`;
+}
+
+function sprite(etat, taille, variante){
+  const corps = etat === 'dort' ? CORPS_DORT : CORPS;
+  const L = 16, H = CLAWD.length, q = taille / L;
+  const carre = (x, y, f) =>
+    `<rect x="${(x * q).toFixed(2)}" y="${(y * q).toFixed(2)}"
+      width="${(q + .03).toFixed(2)}" height="${(q + .03).toFixed(2)}" fill="${f}"/>`;
+
+  let out = '';
+  CLAWD.forEach((ligne, y) => [...ligne].forEach((c, x) => {
+    if (c === 'X') out += carre(x, y, corps);
+  }));
+
+  // Boîtes 3×3 des deux yeux, sur la bande de bras.
+  const pose = (px, py, gauche) => {
+    const bx = gauche ? 3 : 10;
+    out += carre(bx + (gauche ? px : 2 - px), 2 + py, OEIL);
+  };
+  if (variante === 'clin') {
+    for (const [x, y] of YEUX.carre) pose(x, y, true);
+    for (const [x, y] of YEUX.clos) pose(x, y, false);
+  } else {
+    for (const [x, y] of YEUX[variante]) { pose(x, y, true); pose(x, y, false); }
+  }
+  return `<g shape-rendering="crispEdges"
+    transform="translate(${-taille / 2} ${-H * q / 2})">${out}</g>`;
+}
+
+function etincelle(x, y, r){
+  return `<path class="etincelle" transform="translate(${x} ${y}) scale(${r})"
+    d="M0 -1 L.28 -.28 L1 0 L.28 .28 L0 1 L-.28 .28 L-1 0 L-.28 -.28 Z"
+    fill="var(--orange)"/>`;
+}
+
+/* ── carte ─────────────────────────────────────────────────────────────── */
+const W = 1000, H = 640, CX = W / 2, CY = H / 2 - 6;
+
+function arc(cx, cy, r, a0, a1){
+  const p = (a) => [cx + r * Math.cos(a), cy + r * Math.sin(a)];
+  const [x0, y0] = p(a0), [x1, y1] = p(a1);
+  return `M${x0.toFixed(2)} ${y0.toFixed(2)}A${r} ${r} 0 ${a1 - a0 > Math.PI ? 1 : 0} 1 ${x1.toFixed(2)} ${y1.toFixed(2)}`;
+}
+
+const tronque = (t, n) => t.length > n ? t.slice(0, n - 1) + '…' : t;
+
+function dessine(){
+  const svg = document.getElementById('carte');
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  // Plus de centre : tous les agents sont pairs. Ils se répartissent sur une
+  // orbite, tracée en filigrane — ce qu'ils ont en commun est la machine, pas
+  // un agent qui trônerait au milieu.
+  const n = D.projets.length;
+  const RX = n <= 2 ? 210 : n <= 4 ? 330 : 360;
+  const RY = n <= 2 ? 0 : n <= 4 ? 205 : 215;
+  const pos = new Map();
+  D.projets.forEach((p, i) => {
+    const a = -Math.PI / 2 + (i * 2 * Math.PI) / n;
+    pos.set(p, [CX + RX * Math.cos(a), CY + RY * Math.sin(a)]);
+  });
+
+  let html = RY > 0
+    ? `<ellipse cx="${CX}" cy="${CY}" rx="${RX}" ry="${RY}" class="orbite"/>` : '';
+
+  let delai = 0;
+  for (const p of D.projets) {
+    const [x, y] = pos.get(p);
+    const a = p.agents[0];
+    const taille = 108;
+    const etat = !a ? 'dort' : a.statut === 'busy' ? 'busy' : 'idle';
+    const RA = taille / 2 + 6;
+
+    // Une piste de fond et un repère à midi : sans eux, les segments flottent
+    // dans le vide et ne se lisent pas comme un décompte.
+    let anneau = `<circle cx="${x}" cy="${y}" r="${RA}" class="piste-anneau"
+        stroke-width="7" ${p.memoire.length ? '' : 'stroke-dasharray="2 6"'}/>`
+      + `<line x1="${x}" y1="${(y - RA - 7).toFixed(1)}" x2="${x}" y2="${(y - RA + 7).toFixed(1)}"
+         class="depart" stroke-width="1.5"/>`;
+    p.memoire.forEach((f, i) => {
+      const pas = (2 * Math.PI) / p.memoire.length;
+      const gap = p.memoire.length > 1 ? 0.06 : 0;
+      const a0 = -Math.PI / 2 + i * pas + gap / 2, a1 = a0 + pas - gap;
+      const len = RA * (a1 - a0);
+      anneau += `<path class="seg" d="${arc(x, y, RA, a0, a1)}" fill="none"
+        stroke="${COUL[rang(f.jours)]}" stroke-width="7"
+        style="--len:${len.toFixed(1)}; stroke-dasharray:${len.toFixed(1)};
+               animation-delay:${delai + 130}ms"/>`;
+    });
+
+    html += `<g class="noeud" tabindex="0" role="button" data-chemin="${esc(p.chemin)}"
+      aria-label="${esc(p.nom)} — ${p.memoire.length} fichiers mémoire"
+      style="animation-delay:${delai}ms">
+      <circle cx="${x}" cy="${y}" r="${RA + 26}" class="halo"/>
+      ${anneau}
+      <g transform="translate(${x} ${y})">${monstre(a ? a.nom : p.nom, etat, taille)}</g>
+      ${a ? etincelle(x + taille / 2 - 4, y - taille / 2 - 2, 7) : ''}
+      <text x="${x}" y="${y + RA + 26}" class="nom" font-size="15">${esc(tronque(a ? a.nom : p.nom, 18))}</text>
+      <text x="${x}" y="${y + RA + 42}" class="modele" font-size="10">${esc(tronque(a && a.modele ? a.modele : (p.memoire.length ? p.nom : 'sans cadrage'), 22))}</text>
+    </g>`;
+    delai += 65;
+  }
+  svg.innerHTML = html;
+}
+
+/* ── markdown minimal ──────────────────────────────────────────────────── */
+function md(src){
+  const blocs = [];
+  src = src.replace(/```(\w*)\n([\s\S]*?)```/g, (_, l, c) =>
+    `  ${blocs.push(`<pre><code>${esc(c)}</code></pre>`) - 1}  `);
+  const enligne = (t) => esc(t)
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/\[\[([^\]]+)\]\]/g, '<code>$1</code>')
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" rel="noopener">$1</a>')
+    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+    .replace(/(^|\W)\*([^*\n]+)\*/g, '$1<em>$2</em>');
+  const out = []; let liste = null;
+  for (const ligne of src.split('\n')) {
+    const l = ligne.trimEnd();
+    const puce = l.match(/^\s*[-*]\s+(.*)/), num = l.match(/^\s*(\d+)\.\s+(.*)/);
+    if (puce || num) {
+      const type = puce ? 'ul' : 'ol';
+      if (liste !== type) { if (liste) out.push(`</${liste}>`); out.push(`<${type}>`); liste = type; }
+      out.push(`<li>${enligne(puce ? puce[1] : num[2])}</li>`); continue;
+    }
+    if (liste) { out.push(`</${liste}>`); liste = null; }
+    const titre = l.match(/^(#{1,3})\s+(.*)/);
+    if (titre) out.push(`<h${titre[1].length}>${enligne(titre[2])}</h${titre[1].length}>`);
+    else if (/^\s*>/.test(l)) out.push(`<blockquote>${enligne(l.replace(/^\s*>\s?/, ''))}</blockquote>`);
+    else if (/^\s*(-{3,}|={3,})\s*$/.test(l)) out.push('<hr>');
+    else if (l.trim()) out.push(`<p>${enligne(l)}</p>`);
+  }
+  if (liste) out.push(`</${liste}>`);
+  return out.join('\n').replace(/ (\d+) /g, (_, i) => blocs[i]);
+}
+
+/* ── panneau ───────────────────────────────────────────────────────────── */
+function ouvrir(chemin){
+  const p = D.projets.find(x => x.chemin === chemin);
+  if (!p) return;
+  const a = p.agents[0];
+  const etat = !a ? 'dort' : a.statut === 'busy' ? 'busy' : 'idle';
+  document.getElementById('p-tete-monstre').innerHTML =
+    `<g transform="translate(50 50)">${monstre(a ? a.nom : p.nom, etat, 92)}</g>`;
+  document.getElementById('p-nom').textContent = a ? a.nom : p.nom;
+  document.getElementById('p-chemin').textContent = court(p.chemin);
+  document.getElementById('p-jetons').innerHTML = [
+    a && a.modele ? `<span class="jeton">${esc(a.modele)}</span>` : '',
+    a ? `<span class="jeton j-${a.statut === 'idle' ? 'idle' : 'busy'}">${esc(a.statut)}</span>` : '',
+    a ? `<span class="jeton">${esc(a.compte)}</span>` : '',
+    a && a.session ? `<span class="jeton">${esc(a.socket)}:${esc(a.session)}</span>` : '',
+  ].join('');
+
+  const fichier = (f) => `<details>
+    <summary><span class="point" style="background:${COUL[rang(f.jours)]}"></span>
+      <span>${esc(f.nom)}</span><span class="age">${esc(age(f))}</span></summary>
+    ${f.prive
+      ? `<div class="prive">🔒 Exclu : ta taxonomie le marque privé et <code>/publish-docs</code>
+         ne le lit jamais. ${f.octets} octets sur le disque.</div>`
+      : `<div class="corps">${md(f.contenu || '')}</div>`}
+  </details>`;
+
+  const groupe = (src, titre, note) => {
+    const fs = p.memoire.filter(f => f.src === src);
+    if (!fs.length) return '';
+    return `<div class="section">
+      <div class="section-titre"><span>${titre}</span><span>${fs.length}</span></div>
+      <p class="note">${note}</p>${fs.map(fichier).join('')}</div>`;
+  };
+
+  document.getElementById('p-corps').innerHTML = `
+    <div class="section">
+      <div class="section-titre"><span>Rôle — la part assignée</span><span>CLAUDE.md</span></div>
+      ${p.role ? `<p class="role">${esc(p.role)}</p>`
+               : `<p class="role manque">Aucun rôle : ce projet n'a pas de CLAUDE.md.</p>`}
+      ${p.regles.length ? `<ul class="regles">${p.regles.map(r => `<li>${esc(r)}</li>`).join('')}</ul>` : ''}
+    </div>
+    ${p.claude_md ? `<div class="section">
+      <div class="section-titre"><span>CLAUDE.md</span><span>${p.claude_md.length} o</span></div>
+      <details><summary><span class="point" style="background:var(--orange)"></span>
+      <span>CLAUDE.md</span></summary><div class="corps">${md(p.claude_md)}</div></details></div>` : ''}
+    ${groupe('projet', 'Acquis — mémoire du dépôt', 'Versionnée, partagée avec tes collègues et avec Codex. Elle voyage avec le dépôt.')}
+    ${groupe('auto', 'Acquis — mémoire auto', 'Locale à cette machine, non versionnée, invisible aux autres. Elle suit le chemin du dossier.')}
+  `;
+  document.getElementById('p-corps').scrollTop = 0;
+  document.body.classList.add('ouvert');
+  document.getElementById('panneau').setAttribute('aria-hidden', 'false');
+}
+
+function fermer(){
+  document.body.classList.remove('ouvert');
+  document.getElementById('panneau').setAttribute('aria-hidden', 'true');
+}
+
+document.addEventListener('click', (e) => {
+  const n = e.target.closest('.noeud');
+  if (n) { ouvrir(n.dataset.chemin); return; }
+  if (!e.target.closest('#panneau')) fermer();
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') fermer();
+  const n = document.activeElement.closest?.('.noeud');
+  if (n && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); ouvrir(n.dataset.chemin); }
+});
+document.getElementById('fermer').addEventListener('click', fermer);
+
+const $ = (i) => document.getElementById(i);
+const tousFichiers = D.projets.flatMap(p => p.memoire);
+const compte = (r) => tousFichiers.filter(f => rang(f.jours) === r).length;
+
+$('sous').textContent = `${D.machine} · ${D.genere}`;
+$('k-agents').textContent = D.projets.reduce((n, p) => n + p.agents.length, 0);
+$('k-modeles').textContent = [...new Set(D.projets.flatMap(p =>
+  p.agents.map(a => a.modele).filter(Boolean)))].join(' · ') || '—';
+
+$('k-memoire').textContent = tousFichiers.length;
+const perimes = compte('perime');
+$('k-fraicheur').textContent = perimes
+  ? `${perimes} au-delà de 4 semaines` : 'tout est frais';
+$('k-repartition').innerHTML = ['frais', 'vieux', 'perime', 'absent']
+  .map(r => compte(r) ? `<span style="flex:${compte(r)};background:${COUL[r]}"></span>` : '')
+  .join('');
+
+/* Un jeton d'accès ne vit que quelques heures et seul Claude Code le renouvelle :
+   un compte inutilisé depuis la veille n'a donc pas de quota lisible ici. */
+$('k-comptes').innerHTML = (D.comptes || []).map(c => {
+  const g = (lib, u) => u ? `<div class="mini"><span>${lib}</span>
+      <span class="piste"><span class="jauge" style="width:${Math.min(u.pct, 100)}%;
+        background:${u.pct < 60 ? 'var(--frais)' : u.pct < 85 ? 'var(--vieux)' : 'var(--perime)'}"></span></span>
+      <span>${u.pct.toFixed(0)}%</span></div>` : '';
+  return `<div class="compte"><span class="compte-nom">${esc(c.nom)}</span>
+    ${c.usage ? g('5 h', c.usage.h5) + g('7 j', c.usage.j7)
+              : '<div class="mini">jeton expiré — lance le compte</div>'}</div>`;
+}).join('');
+
+const nus = D.projets.filter(p => !p.claude_md && !p.memoire.length).map(p => p.nom);
+$('alerte').textContent = nus.length
+  ? `${nus.join(', ')} — sans rôle ni mémoire : l'agent y repart de zéro à chaque session.` : '';
+$('marque').textContent = 'claude-cadrage';
+
+dessine();
+</script>
