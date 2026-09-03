@@ -1,32 +1,78 @@
 # Index mémoire — [PROJECT_NAME]
 _Dernière mise à jour : YYYY-MM-DD_
 
-> Taxonomie générique : un fichier = un axe, sans redite. **Frontière public/privé** : les fichiers publics peuvent alimenter le site de doc (`/publish-docs`) ; `operations.md` est **privé** et n'est jamais publié.
+> **Deux dossiers, deux natures.** `.mind/` n'énumère que des **faits actuels** :
+> si on le lit, c'est que le projet fonctionne comme ça et qu'on en est là.
+> `.memory/` garde les **traces datées** : décisions, journaux, matière du
+> domaine.
+>
+> **Le test qui tranche** — une phrase qui commence par « on a décidé de », ou
+> qui porte une date au passé, va dans `.memory/`. Tout le reste va dans
+> `.mind/`.
 
-**Stratégie de lecture** — en **début de session**, lire le contexte court/fort signal : `charter`, `rules`, `state` (+ cet index). Lire **à la demande** quand la tâche l'exige : `architecture` (avant de toucher au code/structure), `decisions` (tracer un choix), `operations` (déployer/déboguer). `state.md` = snapshot roulant borné, pas un journal.
+**Cette mémoire ne sert pas d'abord à l'agent, elle sert à son commanditaire** —
+pour voir où en est le projet sans ouvrir le dépôt. C'est ce qui décide du ton :
+`state.md` s'écrit pour quelqu'un qui n'a pas lu le code.
 
-**Fraîcheur** — chaque fichier porte `_Dernière mise à jour_`. Une note de trois
-semaines est affirmée avec exactement le même aplomb qu'une note d'hier : c'est
-le principal piège de cette mémoire, car **l'oubli n'y est pas visible de
-l'intérieur**. Au-delà de **4 semaines**, vérifie dans le code avant de t'appuyer
-dessus pour une affirmation structurelle (architecture, modèle de données,
-procédure d'exploitation) — puis corrige le fichier si la réalité a bougé.
-`state.md` est le plus volatil : périmé, il égare plus vite que les autres.
+## `.mind/` — les faits actuels · **exactement cinq fichiers**
 
-## Public — alimente le site de doc
+Le texte périmé s'y **remplace**, il ne s'ajoute pas.
 
-- [charter.md](charter.md) — **C'est quoi ?** But, périmètre, stack, rôles, contexte métier → *Objectifs & périmètre* · _(session)_
-- [architecture.md](architecture.md) — **Comment c'est bâti ?** Composants, flux, modèle de données, conventions → *Architecture* · _(à la demande)_
-- [rules.md](rules.md) — **Quelles règles ?** Règles métier, accès, contraintes → *Règles de gestion* · _(session)_
-- [decisions.md](decisions.md) — **Pourquoi ces choix ?** Journal des décisions (append-only) → *Décisions / points ouverts* · _(à la demande)_
-- [state.md](state.md) — **Où on en est ?** Fait / en cours / bloqué / à faire → *Suivi* · _(session)_
+- [`.mind/state.md`](../.mind/state.md) — **Où on en est ?** En-tête
+  `maj / cap / sante / jalon`, puis phase, ce qui tient, ce qui ne tient pas →
+  *Suivi* · _(session)_
+- [`.mind/todo.md`](../.mind/todo.md) — **Qui doit bouger ?** Kanban
+  `[ ]`/`[>]`/`[x]`, `!haut`/`!moyen`/`!bas`, `@<qui>` → *Suivi* · _(session)_
+- [`.mind/architecture.md`](../.mind/architecture.md) — **C'est quoi, et comment
+  c'est bâti ?** Domaine, frontières, couches, flux, pièges →
+  *Objectifs & périmètre* + *Architecture* · _(à la demande)_
+- [`.mind/stack.md`](../.mind/stack.md) — **Avec quoi, et où ça tourne ?**
+  Outils, stack, environnements → *Objectifs & périmètre* · _(à la demande)_
+- [`.mind/rules.md`](../.mind/rules.md) — **Quelles règles ?** Métier, accès,
+  contraintes → *Règles de gestion* · _(session)_
 
-## Privé — jamais publié
+> **Jamais un sixième fichier dans `.mind/`.** Si un contenu n'y rentre pas,
+> c'est qu'il appartient à `.memory/`. Deux fichiers de la machine sont **lus
+> par le tableau de bord et gardés par `mind-guard`** : `state.md` (son en-tête)
+> et `todo.md` (son dialecte). Les casser fait disparaître le projet du tableau
+> de bord **sans message d'erreur**.
 
-- [operations.md](operations.md) — 🔒 Hébergement, déploiement, réf. secrets, dépannage · _(à la demande — jamais publié)_
+## `.memory/` — les traces datées
 
-## Conditionnels
+Ça s'accumule, sans plafond.
 
-- `data-model.md` — modélisation des tables par couche. **Livré par défaut** : `project-init` (ou `agentic-upgrade`) le **conserve** pour les projets data-lourds, sinon le **supprime** (le modèle vit alors dans une section d'`architecture.md`).
+- [decisions.md](decisions.md) — **Pourquoi ces choix ?** Journal *append-only*
+  → *Décisions / points ouverts* · **Public (curé)** · _(à la demande)_
+- [operations.md](operations.md) — 🔒 **PRIVÉ.** Hébergement, déploiement,
+  références de secrets, dépannage. **Jamais publié, jamais cité, jamais
+  résumé** — c'est le pare-feu entre la mémoire interne et la doc publique.
+- `data-model.md` — **conditionnel.** Livré par défaut ; `project-init` (ou
+  `agentic-upgrade`) le **conserve** pour un projet data-lourd, sinon le
+  **supprime** — le modèle vit alors dans une section d'`architecture.md`.
 
-<!-- Multi-domaine (plusieurs sous-projets dans un même dépôt) : voir la convention `.memory/<domaine>/{charter,architecture,rules,decisions,state}.md` + `.memory/_global/{charter,operations}.md`. -->
+## Stratégie de lecture
+
+**En début de session** : `.mind/state.md`, `.mind/todo.md`, `.mind/rules.md`
+(+ cet index). C'est le contexte court à fort signal.
+**À la demande** : `architecture.md` et `stack.md` avant de toucher au code ou à
+la structure, `decisions.md` pour tracer un choix, `operations.md` pour déployer
+ou déboguer.
+
+## Fraîcheur — deux pièges, un par dossier
+
+**Dans `.memory/`**, chaque fichier porte `_Dernière mise à jour_`. Une note de
+trois semaines est affirmée avec exactement le même aplomb qu'une note d'hier :
+**l'oubli n'y est pas visible de l'intérieur.** Au-delà de **4 semaines**,
+vérifier dans le code avant de s'appuyer dessus pour une affirmation
+structurelle — puis corriger le fichier si la réalité a bougé.
+
+**Dans `.mind/`**, il n'y a pas de date, et c'est délibéré : ces fichiers n'ont
+pas le droit d'être périmés. Un fait qui n'est plus vrai s'y **remplace**. La
+seule date est le champ `maj:` de `state.md`, qui existe pour la machine.
+
+<!-- Multi-domaine (plusieurs sous-projets dans un même dépôt) : chaque domaine
+     porte son propre couple `.mind/` + `.memory/`, et un `CLAUDE.md` de racine
+     porte le socle commun — il est hérité par tous les sous-dossiers, à
+     n'importe quelle profondeur. Ne PAS créer de `.mind/` au niveau de la
+     racine : aucun agent n'y tourne pour le tenir, et un état consolidé que
+     personne ne maintient pourrit en silence. -->
