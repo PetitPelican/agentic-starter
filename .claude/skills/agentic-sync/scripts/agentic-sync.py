@@ -153,7 +153,7 @@ def detecte_ancienne_memoire(projet: pathlib.Path, rap: Rapport):
             % ", ".join(montent))
     elif (mem / "charter.md").is_file():
         rap.main_humaine(
-            "MÉMOIRE : .memory/charter.md subsiste. Il a été retiré du gabarit le "
+            "MÉMOIRE : .memory/charter.md subsiste. Il a été retiré du template le "
             "03/09/2026 — son contenu se répartit entre le champ cap: de "
             ".mind/state.md, les frontières de .mind/architecture.md, .mind/stack.md "
             "et CLAUDE.md. À dissoudre à la main.")

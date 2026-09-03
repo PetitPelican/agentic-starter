@@ -96,7 +96,7 @@ dossiers.
 
 ### 4. Réconcilier `CLAUDE.md` (guidé, pas d'écrasement)
 
-Comparer avec le gabarit du template **uniquement sur les sections
+Comparer avec le `CLAUDE.md` du starter **uniquement sur les sections
 structurelles**, sans toucher au rôle ni aux règles métier du projet :
 
 - **Section « Mémoire projet »** : aligner sur les deux dossiers, deux natures —

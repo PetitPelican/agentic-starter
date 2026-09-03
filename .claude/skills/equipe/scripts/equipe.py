@@ -31,7 +31,7 @@ PRIO = re.compile(r"!(haut|moyen|bas)\b")
 # marqueur nomme la personne dont la décision manque.
 # Générique à dessein : le dialecte n'a pas à porter le prénom de qui que ce
 # soit pour être réutilisable. Un atelier qui écrit `@<prénom>` reste lu tel
-# quel — c'est le gabarit livré qui est neutre, pas le format.
+# quel — c'est le template livré qui est neutre, pas le format.
 # Le `@` doit ouvrir un mot — sinon `root@serveur` serait lu comme un
 # destinataire nommé « serveur », et le mot disparaîtrait du titre affiché.
 QUI = re.compile(r"(?:^|(?<=\s))@([A-Za-zÀ-ÿ][\w-]*)\b")

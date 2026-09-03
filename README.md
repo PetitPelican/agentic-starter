@@ -20,11 +20,11 @@ premier.
 
 | Fichier | Ce qu'il contient | Pour qui |
 |---|---|---|
-| **[`gabarits/socle-CLAUDE.md`](.claude/skills/atelier-init/gabarits/socle-CLAUDE.md)** | **LA MÉTHODE, en entier** — mémoire, hooks, skills, délégation, frontières, réflexes | l'agent, et le lecteur |
+| **[`templates/socle-CLAUDE.md`](.claude/skills/atelier-init/templates/socle-CLAUDE.md)** | **LA MÉTHODE, en entier** — mémoire, hooks, skills, délégation, frontières, réflexes | l'agent, et le lecteur |
 | ce `README.md` | comment **installer**, et ce que le dépôt **contient** | le lecteur, à l'arrivée |
 | `.claude/skills/*/SKILL.md` | le mode d'emploi détaillé d'**un** outil | l'agent, quand il le lance |
 
-Le gabarit du socle n'est pas un document interne : c'est **le fichier qui est
+Le template du socle n'est pas un document interne : c'est **le fichier qui est
 copié** en `~/Agentic/CLAUDE.md` par `/atelier-init`, et que tout agent ouvert
 dans un sous-dossier lit ensuite à chaque session. Le lire, c'est lire ce que
 les agents lisent. Il n'y a pas de version « pour humains » à côté, et c'est
@@ -74,7 +74,7 @@ Monte l'atelier agentique sur cette machine.
    N'applique rien avant que je te le dise.
 
 4. Après --apply, deux choses que le script ne fait pas et que j'attends de toi :
-   - remplis .mind/state.md et .mind/todo.md du CTO. Ils arrivent en gabarit
+   - remplis .mind/state.md et .mind/todo.md du CTO. Ils arrivent en template
      avec `maj: YYYY-MM-DD` : tant qu'ils sont vides, mind-guard refusera le
      premier commit et le briefing annoncera « EN-TÊTE ILLISIBLE ». C'est voulu.
    - prouve les hooks : un commit d'essai de code sans toucher .mind/ doit être

@@ -21,7 +21,7 @@ Chercher à écraser depuis le parent produit deux textes qui se contredisent.
 """
 import argparse, os, pathlib, shutil, subprocess, sys
 
-GABARITS = pathlib.Path(__file__).resolve().parent.parent / "gabarits"
+TEMPLATES = pathlib.Path(__file__).resolve().parent.parent / "templates"
 
 
 class Rapport:
@@ -47,7 +47,7 @@ def racine_starter() -> pathlib.Path:
 
 def pose(src: pathlib.Path, dst: pathlib.Path, rap: Rapport, appliquer: bool,
          remplacements=None) -> bool:
-    """Copie un gabarit, jamais par-dessus un fichier existant."""
+    """Copie un template, jamais par-dessus un fichier existant."""
     if dst.exists():
         rap.ignore("Existe déjà, non écrasé : %s" % dst)
         return False
@@ -93,11 +93,11 @@ def main():
             racine.mkdir(parents=True)
 
     # 1. La MÉTHODE, à la racine. C'est l'artefact portable.
-    pose(GABARITS / "socle-CLAUDE.md", racine / "CLAUDE.md", rap, a.apply)
+    pose(TEMPLATES / "socle-CLAUDE.md", racine / "CLAUDE.md", rap, a.apply)
 
     # 2. Le poste du CTO. Son rôle seulement — la méthode, il l'hérite.
     qui = a.utilisateur.strip() or "l'utilisateur"
-    pose(GABARITS / "cto-CLAUDE.md", cto / "CLAUDE.md", rap, a.apply,
+    pose(TEMPLATES / "cto-CLAUDE.md", cto / "CLAUDE.md", rap, a.apply,
          {"[UTILISATEUR]": qui})
 
     # 3. Le harnais dans le dossier du CTO : c'est un projet comme un autre,
@@ -140,7 +140,7 @@ def main():
         "selon l'OS. Ce n'est QUE si un settings.json existait déjà qu'il faut "
         "vérifier à la main : le harnais ne l'écrase jamais.")
     rap.main_humaine(
-        "REMPLIR .mind/ : les cinq fichiers arrivent en GABARIT, avec "
+        "REMPLIR .mind/ : les cinq fichiers arrivent en TEMPLATE, avec "
         "`maj: YYYY-MM-DD` et des [PLACEHOLDERS]. Tant qu'ils ne sont pas "
         "remplis, le briefing annonce « EN-TÊTE ILLISIBLE » et mind-guard "
         "REFUSE le premier commit. C'est voulu — un harnais neuf ne laisse pas "

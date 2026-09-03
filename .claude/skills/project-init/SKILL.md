@@ -327,7 +327,7 @@ Il n'y a pas de `charter.md` : ce que le projet doit produire tient dans le cham
 
 #### `.memory/` — les traces
 
-- `decisions.md` : remplacer `[PROJECT_NAME]` + une entrée datée si un choix de stack marquant ressort du scan ; sinon laisser le gabarit
+- `decisions.md` : remplacer `[PROJECT_NAME]` + une entrée datée si un choix de stack marquant ressort du scan ; sinon laisser le template
 - `operations.md` : remplacer `[PROJECT_NAME]` + **référencer** (sans valeurs) où vivent les secrets (`.env*.local`, coffre…) et l'hébergement détecté (cloud via CLIs). 🔒 privé — jamais ouvert, jamais cité, jamais résumé, jamais publié.
 - `data-model.md` : conserver **uniquement** si SQL/warehouse ou data pipeline (Q4) ; pré-remplir les couches pertinentes (raw/staging/marts) ; sinon **supprimer** (le modèle vit dans `.mind/architecture.md`)
 - `MEMORY.md` : remplacer `[PROJECT_NAME]` + retirer la ligne `data-model.md` si le fichier a été supprimé

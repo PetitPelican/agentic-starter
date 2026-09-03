@@ -96,7 +96,7 @@ ne bloque rien et ne le dit pas.**
 `mind-guard` refuser, puis vérifier que `.logs/<jour>.md` s'écrit. Un hook qu'on
 n'a pas vu se déclencher n'est pas un hook vérifié.
 
-**Le contenu du socle.** Le gabarit porte la méthode générique. Ce qui est propre
+**Le contenu du socle.** Le template porte la méthode générique. Ce qui est propre
 à la **machine** — comptes, sessions, réseau, contraintes mémoire — n'y va pas :
 il va dans `~/.claude/CLAUDE.md`. Mélanger les deux, c'est perdre la portabilité
 du socle au premier changement de poste.

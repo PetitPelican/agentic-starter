@@ -72,7 +72,7 @@ l'agent, dans cet ordre :
 
 ### 1. La mémoire — c'est un TRI, pas une création
 
-Les gabarits `.mind/` viennent d'être posés **vides**, à côté d'une mémoire qui
+Les templates `.mind/` viennent d'être posés **vides**, à côté d'une mémoire qui
 existe déjà. Le travail est de faire **monter** le contenu, pas d'en écrire un
 nouveau. Deux dossiers, deux natures : `.mind/` n'énumère que des **faits
 actuels** (le texte périmé s'y **remplace**), `.memory/` garde les **traces

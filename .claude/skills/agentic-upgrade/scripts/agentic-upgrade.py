@@ -125,7 +125,7 @@ def racine_template(donnee: str, rap: Rapport) -> pathlib.Path:
 
 def memoire(projet: pathlib.Path, template: pathlib.Path, rap: Rapport,
             appliquer: bool, retirer_ancienne: bool):
-    """`.claude/memory/` (ancien emplacement) -> `.memory/`, puis gabarits."""
+    """`.claude/memory/` (ancien emplacement) -> `.memory/`, puis templates."""
     ancienne, mem = projet / ".claude" / "memory", projet / ".memory"
 
     if ancienne.is_dir() and mem.is_dir():
@@ -145,7 +145,7 @@ def memoire(projet: pathlib.Path, template: pathlib.Path, rap: Rapport,
             rap.ignore("Ancien .claude/memory/ conservé. --remove-legacy-memory "
                        "pour le supprimer après copie.")
 
-    # Gabarits manquants, sans jamais écraser ce que la migration vient de poser.
+    # Templates manquants, sans jamais écraser ce que la migration vient de poser.
     copie_arbre_si_absent(template / ".memory", mem, rap, appliquer, silencieux=True)
     copie_arbre_si_absent(template / ".mind", projet / ".mind", rap, appliquer,
                           silencieux=True)
@@ -180,7 +180,7 @@ def diagnostic_memoire(projet: pathlib.Path, rap: Rapport):
     if montent:
         rap.main_humaine(
             "MÉMOIRE : %s sont dans .memory/ alors que ce sont des FAITS "
-            "ACTUELS : ils MONTENT dans .mind/. Le gabarit vide vient d'être "
+            "ACTUELS : ils MONTENT dans .mind/. Le template vide vient d'être "
             "posé à côté — c'est le contenu qu'il faut y remonter, puis "
             "supprimer l'original." % ", ".join(montent))
     if mind.is_dir():
@@ -216,7 +216,7 @@ def main():
     print("Mode        : %s" % ("APPLY" if a.apply else "DRY-RUN"))
     print()
 
-    # 1. Mémoire : ancien emplacement, puis gabarits manquants.
+    # 1. Mémoire : ancien emplacement, puis templates manquants.
     memoire(projet, template, rap, a.apply, a.remove_legacy_memory)
 
     # 2. Harnais. Les skills et les hooks se posent fichier par fichier ; un
@@ -244,12 +244,12 @@ def main():
                 ".rtk/filters.toml", ".gitattributes"):
         copie_si_absent(template / rel, projet / rel, rap, a.apply)
 
-    # 3b. CLAUDE.md. Absent, on pose le gabarit — il porte le bloc de détection
+    # 3b. CLAUDE.md. Absent, on pose le template — il porte le bloc de détection
     #     `[PROJECT_NAME]` qui envoie vers /project-init. Présent, il est au
     #     projet : on n'y touche pas, on le signale à réconcilier.
     if copie_si_absent(template / "CLAUDE.md", projet / "CLAUDE.md", rap,
                        a.apply, silencieux=True):
-        rap.main_humaine("CLAUDE.md : gabarit posé, encore en [PROJECT_NAME]. "
+        rap.main_humaine("CLAUDE.md : template posé, encore en [PROJECT_NAME]. "
                          "Le remplir — /project-init le fait en le personnalisant.")
     else:
         rap.main_humaine("CLAUDE.md existe : réconcilier à la main le rôle, les "
