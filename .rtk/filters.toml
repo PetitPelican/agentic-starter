@@ -1,0 +1,43 @@
+# Filtres RTK propres au projet — CE FICHIER SE COMMITE.
+#
+# RTK (https://github.com/rtk-ai/rtk) est un binaire qui compresse la sortie des
+# commandes shell avant qu'elle n'atteigne le contexte de l'agent. Le binaire
+# s'installe sur la MACHINE, une fois (`brew install rtk`, puis `rtk init -g`) :
+# il n'est pas vendu avec le starter, parce qu'il relève de l'exploitation d'un
+# poste, pas de l'architecture d'un projet.
+#
+# Ce fichier-ci, en revanche, appartient au projet : il décrit les commandes
+# bruyantes DE CE DÉPÔT. Il surcharge les filtres globaux et les filtres
+# intégrés. Sans RTK installé, il est simplement inerte — rien ne casse.
+schema_version = 1
+
+# ------------------------------------------------------------------------------
+# Écrire un filtre : `match_command` est une regex sur la commande lancée.
+# Les options utiles sont `strip_ansi`, `strip_lines_matching` (liste de regex),
+# `max_lines`, et `on_empty` (ce qu'on affiche quand il ne reste rien).
+#
+# Le bon réflexe n'est pas d'en écrire à l'avance : lancer `rtk gain` après
+# quelques jours, regarder QUELLES commandes coûtent réellement, et ne filtrer
+# que celles-là. Un filtre écrit d'avance compresse du bruit imaginaire.
+# ------------------------------------------------------------------------------
+
+# Exemple — décommenter et adapter au projet :
+#
+# [filters.mon-outil]
+# description = "Compacte la sortie de mon-outil build"
+# match_command = "^mon-outil\\s+build"
+# strip_ansi = true
+# strip_lines_matching = ["^\\s*$", "^Downloading", "^Installing"]
+# max_lines = 30
+# on_empty = "mon-outil: ok"
+
+# ------------------------------------------------------------------------------
+# ⚠️ NE PAS filtrer `git commit`.
+#
+# Deux hooks du starter se déclenchent dessus — `mind-guard` (PreToolUse) et
+# `journal` (PostToolUse). RTK réécrit `git commit` en `rtk git commit` et
+# renvoie un `permissionDecision: "allow"`. Les deux hooks sont déclarés pour
+# accepter les deux formes, et la liste `deny` de settings.json couvre aussi la
+# forme réécrite — mais un filtre maison sur `git commit` sortirait de ce cadre.
+# Voir la section « RTK » du README avant d'y toucher.
+# ------------------------------------------------------------------------------

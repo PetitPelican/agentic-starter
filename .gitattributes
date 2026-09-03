@@ -1,0 +1,18 @@
+# Le starter tourne sur macOS et sur Windows. Sans normalisation, chaque machine
+# recommite les fichiers de l'autre en CRLF/LF et le diff devient illisible.
+* text=auto eol=lf
+
+# Les hooks sont lus par Python, et le journal comme la mémoire sont relus par
+# le tableau de bord : LF partout, quelle que soit la machine qui écrit.
+*.py    text eol=lf
+*.md    text eol=lf
+*.json  text eol=lf
+*.toml  text eol=lf
+*.yml   text eol=lf
+*.yaml  text eol=lf
+
+# Binaires : ne jamais toucher aux fins de ligne.
+*.docx  binary
+*.png   binary
+*.jpg   binary
+*.pdf   binary
