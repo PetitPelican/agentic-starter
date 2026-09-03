@@ -71,15 +71,24 @@ def w(rel, content):
 def read(rel):
     return (BASE / rel).read_text(encoding="utf-8")
 
+# La section transverse. `status` est le nom courant, `suivi` l'ancien.
+TRANSVERSE = ("status", "suivi")
+
+
 def domains():
     """Domaines = liste explicite de la config, sinon sous-dossiers de `_content/`
-    (hors `suivi` et dossiers `_*`)."""
+    (hors la section transverse et les dossiers `_*`).
+
+    `suivi` est l'ancien nom de `status`, gardé en lecture : un projet monté
+    avant le renommage verrait sinon sa section transverse traitée comme un
+    domaine — sans erreur, juste une navigation fausse."""
     if CFG.get("domains"):
         return [str(d) for d in CFG["domains"]]
     if not CONTENT.exists():
         return []
     return sorted(d.name for d in CONTENT.iterdir()
-                  if d.is_dir() and not d.name.startswith("_") and d.name != "suivi")
+                  if d.is_dir() and not d.name.startswith("_")
+                  and d.name not in TRANSVERSE)
 
 def domain_sections(dom):
     """Sections d'un domaine, ordonnées selon le preset puis les extras (alpha)."""
@@ -146,14 +155,15 @@ def _sidebar_yaml():
         out.append(f'      - section: "{dom}"')
         out.append('        contents:')
         out += [f'          - {dom}/{s}.qmd' for s in secs]
-    if (CONTENT / "suivi").is_dir():
-        subs = [p.stem for p in (CONTENT / "suivi").glob("*.qmd")]
+    dossier = next((n for n in TRANSVERSE if (CONTENT / n).is_dir()), None)
+    if dossier:
+        subs = [p.stem for p in (CONTENT / dossier).glob("*.qmd")]
         order = ["journal", "en-cours", "backlog"]
         subs = [s for s in order if s in subs] + [x for x in sorted(subs) if x not in order]
         if subs:
             out.append('      - section: "Suivi"')
             out.append('        contents:')
-            out += [f'          - suivi/{s}.qmd' for s in subs]
+            out += [f'          - {dossier}/{s}.qmd' for s in subs]
     return "\n".join(out)
 
 # ------------------------------------------------------------------ CONFIG QUARTO

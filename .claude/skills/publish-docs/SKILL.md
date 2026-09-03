@@ -16,7 +16,7 @@ jamais depuis `operations.md` (privé : hébergement, secrets, dépannage).
 ## Pièces
 
 - `site/site.config.yml` — titre, tagline, logo, `preset` (data|web|api|generic), domaines, `deploy`.
-- `site/_content/**` — **LA** source éditable (produite par `refresh`). `_content/<domaine>/*.qmd` + `_content/suivi/` + `_content/index.qmd`.
+- `site/_content/**` — **LA** source éditable (produite par `refresh`). `_content/<domaine>/*.qmd` + `_content/status/` + `_content/index.qmd`.
 - `site/_content/<domaine>/_diagrams/*.dot` — schémas Graphviz (rendus SVG web + PNG export).
 - `site/build_site.py` — assembleur (config → `_quarto.yml` + `theme.scss` + schémas + dossiers). Sidebar/domaines **dérivés** de `_content/`.
 - `site/publish.py` — build + rendu Quarto + déploiement (`azure` | `ghpages` | `zip` | `none`).
@@ -71,7 +71,7 @@ la mémoire telle quelle : reformuler pour un lecteur externe, factualiser, stru
 | `architecture.qmd` | `.mind/architecture.md` (+ `.memory/data-model.md`) | Vue d'ensemble, composants, flux (schéma `dot`), modèle de données. |
 | `regles-gestion.qmd` *(preset data/generic)* | `.mind/rules.md` | Règles métier & d'accès, contraintes. |
 | `points-ouverts.qmd` | `.memory/decisions.md` + `.mind/todo.md` (`[ ]`, `[>]`, `@<qui>`) | Décisions présentables + points à trancher. |
-| `suivi/{journal,en-cours,backlog}.qmd` | `.logs/<jour>.md` (journal daté) + `.mind/todo.md` (en cours, backlog) | Transverse, pas par domaine. |
+| `status/{journal,en-cours,backlog}.qmd` | `.logs/<jour>.md` (journal daté) + `.mind/todo.md` (en cours, backlog) | Transverse, pas par domaine. |
 | `index.qmd` | `cap:` de `.mind/state.md` (tagline) + `CLAUDE.md` (titre) | Accueil : hero `@@TITLE@@`/`@@TAGLINE@@` + `@@CARDS@@`. |
 
 Presets — sections spécifiques en plus du spine :

@@ -30,6 +30,10 @@ MOTEUR_SITE = (
 A_SUPPRIMER = (
     # second harnais, retiré le 03/09/2026
     ".codex", "AGENTS.md",
+    # renommés le 03/09/2026 : atelier-init -> agentic-init, equipe -> agentic-team.
+    # Sans cette ligne, une resynchro AJOUTE les nouveaux et LAISSE les anciens :
+    # deux skills aux mêmes déclencheurs, dont un figé pour toujours.
+    ".claude/skills/atelier-init", ".claude/skills/equipe",
     # renommages plus anciens
     ".claude/agents", ".claude/skills/agent-init",
     ".claude/skills/doc-site", ".claude/skills/project-upgrade",

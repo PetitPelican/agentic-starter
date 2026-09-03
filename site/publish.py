@@ -51,7 +51,8 @@ def domains(cfg):
     if not CONTENT.exists():
         return []
     return sorted(d.name for d in CONTENT.iterdir()
-                  if d.is_dir() and not d.name.startswith("_") and d.name != "suivi")
+                  if d.is_dir() and not d.name.startswith("_")
+                  and d.name not in ("status", "suivi"))   # `suivi` : ancien nom
 
 
 def find_quarto():

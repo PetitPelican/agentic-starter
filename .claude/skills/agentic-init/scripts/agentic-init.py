@@ -9,11 +9,11 @@ Le starter sait monter **un projet**. Ce script monte ce qui l'entoure :
 
 C'est cette couche du milieu qui **se transporte**. La couche du poste
 (`~/.claude/CLAUDE.md` : comptes, sessions, réseau) se refait sur chaque machine,
-et la couche projet est propre à chaque projet. Le foundation, lui, part tel quel.
+et la couche projet est propre à chaque projet. Le socle, lui, part tel quel.
 
 POURQUOI LE FOUNDATION NE « PRÉVAUT » PAS. Un `CLAUDE.md` parent n'écrase pas celui
 d'un projet : les deux sont lus, et le plus spécifique l'emporte en cas de
-conflit. Le foundation porte donc l'**invariant** — mémoire, hooks, skills,
+conflit. Le socle porte donc l'**invariant** — mémoire, hooks, skills,
 frontières — et le projet ajoute son rôle et ses règles métier par-dessus.
 Chercher à écraser depuis le parent produit deux textes qui se contredisent.
 
@@ -164,7 +164,7 @@ def main():
     print("Ignorés (non écrasés) :")
     print("\n".join("- %s" % m for m in rap.ignores) or "- Aucun")
     print()
-    print("À faire ensuite (voir le SKILL atelier-init) :")
+    print("À faire ensuite (voir le SKILL agentic-init) :")
     print("\n".join("- %s" % m for m in rap.manuel))
 
     if not a.apply:

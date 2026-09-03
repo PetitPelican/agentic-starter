@@ -5,7 +5,7 @@ Ce fichier est lu par **tout agent ouvert dans un sous-dossier**. Il porte la
 n'importe quelle machine.
 
 Il ne prévaut pas sur le `CLAUDE.md` d'un projet — les deux sont lus, et le plus
-spécifique l'emporte. Le foundation dit **comment on travaille** ; le projet dit **sur
+spécifique l'emporte. Le socle dit **comment on travaille** ; le projet dit **sur
 quoi**. Ne jamais dupliquer l'un dans l'autre.
 
 Trois couches, à ne pas mélanger :
@@ -168,25 +168,25 @@ dit pas**.
 
 | Situation du dépôt | Le skill | Ce qu'il fait au contenu |
 |---|---|---|
-| on ne sait pas dans quel état il est | `/equipe` | **rien — il lit et il dit quoi lancer** |
+| on ne sait pas dans quel état il est | `/agentic-team` | **rien — il lit et il dit quoi lancer** |
 | vide ou tout neuf | `/project-init` | crée et remplit |
 | du code, aucun harnais | `/agentic-upgrade` | ajoute seulement, n'écrase rien |
 | harnais présent, en retard | `/agentic-sync` | écrase le harnais, jamais le projet |
 
-**`/equipe` passe en premier parce qu'il est le seul à ne rien écrire.** Il lit
+**`/agentic-team` passe en premier parce qu'il est le seul à ne rien écrire.** Il lit
 les `.mind/` de tout l'atelier et rend deux choses : un **diagnostic** projet par
 projet, qui nomme le skill à lancer, et une **page HTML autonome — l'`agentic-team`**,
 qui s'ouvre d'un double-clic sur n'importe quelle machine, sans serveur ni
 réseau. Elle ouvre sur **ce qui attend une décision**, avant l'état des projets.
 
 ```bash
-python3 .claude/skills/equipe/scripts/equipe.py --racine <racine>            # diagnostic
-python3 .claude/skills/equipe/scripts/equipe.py --racine <racine> --projet X # un seul
-python3 .claude/skills/equipe/scripts/equipe.py --racine <racine> --html agentic-team.html
+python3 .claude/skills/agentic-team/scripts/agentic-team.py --racine <racine>            # diagnostic
+python3 .claude/skills/agentic-team/scripts/agentic-team.py --racine <racine> --projet X # un seul
+python3 .claude/skills/agentic-team/scripts/agentic-team.py --racine <racine> --html agentic-team.html
 ```
 
 La page est un **relevé daté**, pas un tableau vivant : elle porte l'heure de sa
-génération et ne bouge plus. `--suivi 60` la réécrit en boucle et y pose un
+génération et ne bouge plus. `--watch 60` la réécrit en boucle et y pose un
 meta-refresh — le seul rafraîchissement qui fonctionne depuis un `file://`.
 
 `/publish-docs` génère un site Quarto (HTML + Word/PDF) depuis la mémoire

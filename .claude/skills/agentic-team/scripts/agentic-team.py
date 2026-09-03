@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Lit les `.mind/` de tous les projets d'un atelier et en rend deux vues.
 
-    equipe.py                          le rapport terminal — le DIAGNOSTIC
-    equipe.py --html equipe.html       une page autonome — la VUE D'ÉQUIPE
-    equipe.py --projet <nom>           un seul projet, en détail
+    agentic-team.py                          le rapport terminal — le DIAGNOSTIC
+    agentic-team.py --html team.html         une page autonome — la VUE D'ÉQUIPE
+    agentic-team.py --projet <nom>           un seul projet, en détail
 
 **Une seule lecture, deux sorties.** Diagnostiquer un projet et voir l'atelier
 entier, c'est le même travail : ouvrir `.mind/state.md` et `.mind/todo.md`, et
@@ -337,7 +337,7 @@ BADGE_FRAIS = {"frais": ("b-ok", "à jour"), "tiede": ("b-warn", "tiède"),
                "perime": ("b-bad", "périmé"), "illisible": ("b-bad", "en-tête illisible")}
 
 
-def page(projets, racine, suivi=0):
+def page(projets, racine, watch=0):
     e = html.escape
     att = [(p["nom"], a) for p in projets for a in p["attente"]]
     att.sort(key=lambda x: {"haut": 0, "moyen": 1, "": 2, "bas": 3}[x[1]["prio"]])
@@ -393,13 +393,13 @@ def page(projets, racine, suivi=0):
     # `meta refresh` est le SEUL rafraîchissement qui marche depuis `file://` :
     # un fetch y est interdit par la politique d'origine, et il n'y a pas de
     # serveur pour pousser quoi que ce soit. Le navigateur relit le fichier, et
-    # `--suivi` le réécrit à côté. Sans `--suivi`, aucun refresh : une page qui
+    # `--watch` le réécrit à côté. Sans `--watch`, aucun refresh : une page qui
     # se recharge sans que rien ne la régénère ne ferait que clignoter.
-    refresh = ("<meta http-equiv=refresh content=%d>" % suivi) if suivi else ""
-    pied = ("Régénérée toutes les %d s tant que <span class=mono>--suivi</span> "
-            "tourne." % suivi) if suivi else \
+    refresh = ("<meta http-equiv=refresh content=%d>" % watch) if watch else ""
+    pied = ("Régénérée toutes les %d s tant que <span class=mono>--watch</span> "
+            "tourne." % watch) if watch else \
            ("Relevé daté, pas un tableau vivant. Régénérer avec "
-            "<span class=mono>equipe.py --html</span>.")
+            "<span class=mono>agentic-team.py --html</span>.")
 
     return ("<!doctype html><html lang=fr><head><meta charset=utf-8>"
             "<meta name=viewport content='width=device-width,initial-scale=1'>%s"
@@ -419,7 +419,7 @@ def main():
     ap.add_argument("--racine", default=str(pathlib.Path.home() / "Agentic"))
     ap.add_argument("--projet", default="", help="n'examiner qu'un projet")
     ap.add_argument("--html", default="", help="écrire une page autonome à ce chemin")
-    ap.add_argument("--suivi", type=int, default=0, metavar="N",
+    ap.add_argument("--watch", type=int, default=0, metavar="N",
                     help="avec --html : réécrire la page toutes les N secondes "
                          "et y poser un meta-refresh (60 s est un bon pas)")
     a = ap.parse_args()
@@ -427,11 +427,11 @@ def main():
     racine = pathlib.Path(a.racine).expanduser().resolve()
     if not racine.is_dir():
         raise SystemExit("Racine introuvable : %s" % racine)
-    if a.suivi and not a.html:
-        raise SystemExit("--suivi n'a de sens qu'avec --html : sans page à "
+    if a.watch and not a.html:
+        raise SystemExit("--watch n'a de sens qu'avec --html : sans page à "
                          "réécrire, il n'y a rien à rafraîchir.")
-    if a.suivi and a.suivi < 5:
-        raise SystemExit("--suivi en dessous de 5 s relit tous les .mind/ en "
+    if a.watch and a.watch < 5:
+        raise SystemExit("--watch en dessous de 5 s relit tous les .mind/ en "
                          "boucle pour rien. 60 s convient.")
 
     def releve():
@@ -450,18 +450,18 @@ def main():
 
     def ecris():
         projets = releve()
-        cible.write_text(page(projets, racine, a.suivi), encoding="utf-8")
+        cible.write_text(page(projets, racine, a.watch), encoding="utf-8")
         return projets
 
     projets = ecris()
     print("Page écrite : %s  (%d projets, %.0f Ko)"
           % (cible, len(projets), cible.stat().st_size / 1024))
-    if not a.suivi:
+    if not a.watch:
         print("Elle s'ouvre d'un double-clic — aucun serveur nécessaire.")
         return
 
     print("Suivi toutes les %d s. La page se recharge seule ; Ctrl-C pour "
-          "arrêter." % a.suivi)
+          "arrêter." % a.watch)
     # SIGTERM autant que Ctrl-C : mesuré, un `kill` simple laissait la balise
     # `refresh` en place et la page se rechargeait indéfiniment sur un relevé
     # mort. `sys.exit` depuis le gestionnaire lève SystemExit dans le thread
@@ -469,7 +469,7 @@ def main():
     signal.signal(signal.SIGTERM, lambda *_: sys.exit(0))
     try:
         while True:
-            time.sleep(a.suivi)
+            time.sleep(a.watch)
             ecris()
     except (KeyboardInterrupt, SystemExit):
         # Réécrire une dernière fois sans refresh : la page reste lisible et

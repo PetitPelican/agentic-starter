@@ -1,12 +1,13 @@
 ---
-name: equipe
+name: agentic-team
 description: >
   Lit les .mind/ de tous les projets d'un atelier et en rend deux vues : un
   DIAGNOSTIC en terminal (l'état du harnais projet par projet, et quel skill
   lancer) et une PAGE HTML autonome, qui s'ouvre d'un double-clic sur n'importe
   quelle machine, sans serveur. Cette page s'appelle **agentic-team**.
   Strictement en lecture.
-  Trigger: /equipe, « ouvre la page agentic-team », « agentic team », « la vue
+  Trigger: /agentic-team, « ouvre la page agentic-team », « agentic team »,
+  « /equipe » (ancien nom), « la vue
   d'équipe », « le tableau de l'atelier », « où en sont les projets »,
   « diagnostique ce projet », « qu'est-ce qui m'attend ».
 ---
@@ -25,13 +26,13 @@ Il ne touche à aucun projet : il dit ce qu'il faut lancer, il ne le lance pas.
 
 ```bash
 # 1. Diagnostic de tout l'atelier, en terminal
-python3 .claude/skills/equipe/scripts/equipe.py --racine ~/Agentic
+python3 .claude/skills/agentic-team/scripts/agentic-team.py --racine ~/Agentic
 
 # 2. Un seul projet, en détail — « va voir ce projet-là »
-python3 .claude/skills/equipe/scripts/equipe.py --racine ~/Agentic --projet <NomDuProjet>
+python3 .claude/skills/agentic-team/scripts/agentic-team.py --racine ~/Agentic --projet <NomDuProjet>
 
 # 3. La page autonome
-python3 .claude/skills/equipe/scripts/equipe.py --racine ~/Agentic --html ~/equipe.html
+python3 .claude/skills/agentic-team/scripts/agentic-team.py --racine ~/Agentic --html ~/agentic-team.html
 ```
 
 Sur Windows, l'interpréteur s'appelle `python`.
@@ -97,7 +98,7 @@ le contenu appartient au projet. Voir l'étape mémoire d'`/agentic-upgrade`.
 
 Puis vérifier, dans cet ordre : le dépôt est un dépôt git · les hooks sont
 câblés deux fois (`python` et `python3`) · **ils se déclenchent vraiment**, ce
-qui se prouve par un commit d'essai. Relancer `/equipe --projet <nom>` doit
+qui se prouve par un commit d'essai. Relancer `/agentic-team --projet <nom>` doit
 alors rendre `OK`.
 
 ## Le contrat de lecture
