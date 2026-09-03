@@ -1,246 +1,345 @@
-# agentic-starter
+# claude-starter
 
-> Starter agentique prêt à l'emploi pour démarrer un projet avec Claude Code et le CLI Codex.
+> Le harnais d'un projet piloté par Claude Code : une architecture mémoire qui
+> tient dans le temps, des skills, des permissions, un site de doc optionnel.
 
-`agentic-starter` fournit une base commune pour travailler avec plusieurs agents de code :
+**Un seul harnais, un seul assistant : Claude Code.** Le starter en a porté un
+second en miroir jusqu'au 3 septembre 2026. Le maintenir à l'identique était une
+discipline que rien n'appliquait : les deux copies divergeaient en silence.
 
-- `.claude/` et `CLAUDE.md` pour Claude Code
-- `.codex/` et `AGENTS.md` pour le CLI Codex
-- `.memory/` à la racine pour une mémoire projet partagée entre les assistants
-- des skills, des règles de permissions, un flux d'initialisation et un site de doc optionnel
+Le parti pris tient en une phrase : **poser une architecture saine sans être
+compliqué.** Ce qui est une brique d'architecture de projet reste ici ; ce qui
+relève de l'exploitation d'une machine n'y est pas.
+
+---
+
+## Où la méthode est écrite
+
+Trois fichiers, et un seul est la référence. Si tu ne dois en lire qu'un, c'est
+le premier.
+
+| Fichier | Ce qu'il contient | Pour qui |
+|---|---|---|
+| **[`gabarits/socle-CLAUDE.md`](.claude/skills/atelier-init/gabarits/socle-CLAUDE.md)** | **LA MÉTHODE, en entier** — mémoire, hooks, skills, délégation, frontières, réflexes | l'agent, et toi |
+| ce `README.md` | comment **installer**, et ce que le dépôt **contient** | toi, à l'arrivée |
+| `.claude/skills/*/SKILL.md` | le mode d'emploi détaillé d'**un** outil | l'agent, quand il le lance |
+
+Le gabarit du socle n'est pas un document interne : c'est **le fichier qui est
+copié** en `~/Agentic/CLAUDE.md` par `/atelier-init`, et que tout agent ouvert
+dans un sous-dossier lit ensuite à chaque session. Le lire, c'est lire ce que
+les agents lisent. Il n'y a pas de version « pour humains » à côté, et c'est
+délibéré : deux versions divergeraient, et personne ne le verrait.
+
+Ce README, lui, ne réexplique pas la méthode — il dit ce qu'il y a dans la
+boîte et comment s'en servir.
+
+---
+
+## Machine neuve — monter l'atelier d'abord
+
+Le starter monte **un projet**. Avant le premier projet, sur une machine neuve,
+on monte l'**atelier** : la couche au-dessus.
+
+```bash
+git clone https://github.com/PetitPelican/claude-starter.git /tmp/claude-starter
+python3 /tmp/claude-starter/.claude/skills/atelier-init/scripts/atelier-init.py \
+        --racine ~/Agentic --cto cto --utilisateur <TonPrénom>
+# lire le rapport, puis relancer avec --apply
+```
+
+Ça pose deux choses, et rien d'autre :
+
+- **`~/Agentic/CLAUDE.md`** — la **méthode**, héritée par tout agent ouvert dans
+  un sous-dossier. C'est l'artefact qui se transporte d'une machine à l'autre.
+- **`~/Agentic/cto/`** — le poste du CTO : harnais complet, mémoire, dépôt git.
+  Il sait ensuite monter les projets un par un.
+
+Trois couches, une seule voyage :
+
+| Couche | Fichier | Portable ? |
+|---|---|---|
+| Poste | `~/.claude/CLAUDE.md` — comptes, sessions, réseau | non, refait par machine |
+| **Méthode** | **`~/Agentic/CLAUDE.md`** — mémoire, hooks, skills, frontières | **oui** |
+| Projet | `<projet>/CLAUDE.md` — rôle, stack, règles métier | non, propre au projet |
+
+Le socle ne « prévaut » pas sur les `CLAUDE.md` de projet : les deux sont lus, et
+le plus spécifique l'emporte. Il porte donc l'invariant, pas des surcharges.
+Détail dans `/atelier-init`.
 
 ---
 
 ## Quickstart
 
-**Étape 1 — Cloner dans ton projet**
+**1. Cloner dans ton projet**
 
 ```bash
-git clone https://github.com/PetitPelican/agentic-starter.git .
+git clone https://github.com/PetitPelican/claude-starter.git .
 ```
 
-**Étape 2 — Recharger l'éditeur**
+**2. Recharger l'éditeur** — `Shift + Ctrl + P` → **Developer: Reload Window**,
+pour que Claude Code voie les nouveaux fichiers.
 
-Après le clone, recharge la fenêtre pour que les assistants détectent les nouveaux fichiers :
-
-`Shift + Ctrl + P` -> **Developer: Reload Window**
-
-**Étape 3 — Initialiser le projet**
-
-Dans Claude Code ou Codex, lance :
+**3. Initialiser**
 
 ```text
 /project-init
 ```
 
-L'agent va te demander quel(s) assistant(s) tu utilises (Claude Code / Codex / les deux) et supprimer le harnais non retenu, scanner ton projet, te poser les questions nécessaires, puis configurer automatiquement :
+L'agent scanne le projet, pose les questions nécessaires, puis configure :
 
-- le(s) fichier(s) de contexte conservé(s) : `CLAUDE.md` (Claude Code) et/ou `AGENTS.md` (Codex)
-- les règles adaptées au type de projet détecté
-- la mémoire projet dans `.memory/`
+- `CLAUDE.md` — le rôle et les règles, adaptés au type de projet détecté
+- `.mind/` — les cinq fichiers de faits actuels
+- `.memory/` — les traces datées
 - optionnellement, un site de documentation Quarto (`/publish-docs`)
 
-**Étape 4 — Coder**
-
-Utilise Claude Code ou Codex selon ton workflow. La mémoire étant centralisée dans `.memory/`, les deux outils peuvent s'appuyer sur le même état projet.
-
-En fin de session ou de sprint, lance :
-
-```text
-/memory-update
-```
+**4. Coder.** La mémoire se tient toute seule : `mind-guard` refuse un commit
+qui laisserait `.mind/` en arrière, et `journal` écrit `.logs/<jour>.md`.
 
 ---
 
 ## Projet existant
 
-Ton projet a déjà du code (avec ou sans ancien `claude-starter`) ? N'utilise pas `/project-init` (réservé à un nouveau projet) : le skill dédié est **`/agentic-upgrade`**, purement **additif** (*copy-if-missing*, aucun écrasement de tes fichiers).
+Ton projet a déjà du code ? N'utilise pas `/project-init`, réservé à un nouveau
+projet. Le skill dédié est **`/agentic-upgrade`**, purement **additif**
+(*copy-if-missing*, aucun écrasement).
 
-Comme le skill vit dans `.claude/`, amorce d'abord le harnais Claude Code, recharge l'éditeur, puis lance-le :
+Comme le skill vit dans `.claude/`, amorce d'abord le harnais :
 
 ```bash
-# Linux / Mac
-git clone https://github.com/PetitPelican/agentic-starter.git /tmp/agentic-starter
-cp -r /tmp/agentic-starter/.claude ./
-rm -rf /tmp/agentic-starter
+# macOS / Linux
+git clone https://github.com/PetitPelican/claude-starter.git /tmp/claude-starter
+cp -r /tmp/claude-starter/.claude ./
+rm -rf /tmp/claude-starter
 # recharge l'éditeur, puis dans Claude Code : /agentic-upgrade
 ```
 
 ```powershell
 # Windows PowerShell
-git clone https://github.com/PetitPelican/agentic-starter.git $env:TEMP\agentic-starter
-Copy-Item -Recurse "$env:TEMP\agentic-starter\.claude" ".\.claude"
-Remove-Item -Recurse -Force "$env:TEMP\agentic-starter"
-# recharge (Shift+Ctrl+P -> Developer: Reload Window), puis : /agentic-upgrade
+git clone https://github.com/PetitPelican/claude-starter.git $env:TEMP\claude-starter
+Copy-Item -Recurse "$env:TEMP\claude-starter\.claude" ".\.claude"
+Remove-Item -Recurse -Force "$env:TEMP\claude-starter"
+# recharge (Shift+Ctrl+P → Developer: Reload Window), puis : /agentic-upgrade
 ```
 
-`agentic-upgrade` copie le reste (`.codex/`, `AGENTS.md`, `.memory/`, `.mcp.json.example`), migre la mémoire d'un ancien `claude-starter` le cas échéant, et signale tout conflit sans rien écraser.
+`agentic-upgrade` copie ensuite le reste (`.mind/`, `.memory/`,
+`.mcp.json.example`), migre la mémoire d'une ancienne taxonomie le cas échéant,
+et signale tout conflit sans rien écraser.
 
-> Projet **déjà** agentic à remettre au niveau de la dernière version du starter → `/agentic-sync`.
+> Projet **déjà** au harnais, à remettre au niveau de la dernière version →
+> `/agentic-sync`.
 
 ---
 
 ## Ce qui est inclus
 
-### Claude Code
+### Le harnais
 
-- `CLAUDE.md` — contexte projet pour Claude Code
-- `.claude/settings.json` — permissions et configuration partagées
-- `.claude/settings.local.json.example` — exemple de configuration locale
-- `.claude/skills/` — skills disponibles dans Claude Code
-
-### Codex CLI
-
-- `AGENTS.md` — contexte projet pour Codex
-- `.codex/settings.json` — permissions et configuration partagées
-- `.codex/settings.local.json.example` — exemple de configuration locale
-- `.codex/skills/` — skills disponibles dans Codex
+- `CLAUDE.md` — le contexte projet, chargé à chaque session
+- `.claude/settings.json` — permissions et câblage des hooks
+- `.claude/settings.local.json.example` — ajustements locaux, non commités
+- `.claude/skills/` — les skills disponibles
 
 ### Skills
 
-Tout passe par des **skills** (plus d'agents-personas) :
+- `atelier-init` — monte l'**atelier** sur une machine neuve : le socle de méthode
+  et le poste du CTO. Une fois par machine, avant tout projet.
+- `project-init` — initialise un **nouveau** projet
+- `agentic-upgrade` — onboarde un projet existant **sans** harnais (additif)
+- `agentic-sync` — resynchronise un projet déjà au harnais
+- `equipe` — **lit** l'état de tous les projets d'un atelier et en rend deux
+  vues : un diagnostic en terminal (« que faut-il lancer sur ce projet ? ») et
+  la page **agentic-team**, un fichier HTML autonome qui s'ouvre d'un
+  double-clic, sans serveur. Strictement en lecture.
+- `publish-docs` — génère un site Quarto (HTML + Word/PDF) depuis la mémoire
+- `caveman` — mode ultra-compressé, pour réduire les jetons. **Jamais sur
+  `.mind/todo.md` ni sur les `.logs/`** : ces fichiers sont relus par un
+  programme, et la compression fusionne les listes — `!haut` et `@<qui>`
+  disparaîtraient sans erreur.
 
-- `project-init` — initialise un **nouveau** projet (archi agentic, mémoire, site optionnel)
-- `agentic-upgrade` — onboarde un projet existant **sans** archi agentic (additif, ne casse rien)
-- `agentic-sync` — resynchronise un projet **déjà** agentic sur la dernière version du starter
-- `memory-update` — met à jour la mémoire projet
-- `publish-docs` — génère un site de documentation Quarto (HTML + Word/PDF) depuis la mémoire
-- `audit` — audit exhaustif du code (comportemental / transversal / qualité), rapport seul
-- `caveman` — mode ultra-compressé pour réduire les tokens
-- `caveman-compress` — compresse les fichiers mémoire
+### Hooks (`.claude/hooks/`)
 
-### Hooks (`.claude/hooks/`, `.codex/hooks/`)
+**`briefing`** — `SessionStart` + `UserPromptSubmit`. Injecte à l'ouverture ce
+qui ne tient pas dans un pointeur : le `cap:`, la fraîcheur de la déclaration,
+les décisions en attente, les **titres de section** de `stack.md`, `rules.md` et
+`architecture.md`, et les règles `deny` réellement appliquées. Il ne recopie
+rien — il relit les fichiers à chaque déclenchement, donc rien ne peut s'y
+périmer.
 
-Automatisations exécutées par le harnais (câblées dans `settings.json`) :
+Sur `UserPromptSubmit` il est **silencieux** tant que rien n'a bougé — coût nul
+en régime établi, et il peut donc se poser sur une session **déjà ouverte**.
+*Pourquoi un pointeur dans `CLAUDE.md` ne suffisait pas, et la mesure qui l'a
+montré : voir le socle, « Les trois hooks ».*
 
-- **`memory-guard`** (`PreToolUse` sur `git push`) — bloque un push de **code projet** poussé sans mise à jour de `.memory/` → force `/memory-update` (qui met aussi à jour le **journal** `logs/<jour>.md`). Fail-open ; échappatoire ` # memory-ok` en fin de commande. Dormant tant que `git push` est interdit par défaut (`settings.json`) ; s'active dès qu'un projet autorise git.
+**`mind-guard`** — `PreToolUse` sur `git commit`. Refuse un commit de **code
+projet** qui laisserait `.mind/state.md` ou `.mind/todo.md` en arrière, et
+refuse un commit qui les rendrait **illisibles**.
 
-> La règle « mettre à jour la mémoire avant un push » n'est plus seulement *énoncée* dans CLAUDE.md, elle est **appliquée** par ce hook.
+Trois choses le distinguent de l'ancien `memory-guard` :
 
-### Mémoire
+1. **Il garde au `commit`, pas au `push`.** Le tableau de bord lit les fichiers
+   `.mind/` **sur le disque local**, jamais le dépôt distant : garder au push ne
+   protégeait pas ce qu'on croyait protéger.
+2. **Il ne suffit plus de « toucher » la mémoire.** Un commit qui ne modifiait
+   que `decisions.md` satisfaisait l'ancien hook en laissant `state.md` périmé.
+3. **Il vérifie que les fichiers restent lisibles.** C'est le cas le plus grave :
+   un en-tête cassé fait sortir le projet du tableau de bord **sans bruit**.
 
-La mémoire n'est plus stockée dans `.claude/`. Elle vit maintenant à la racine, dans `.memory/`, pour être partagée par Claude Code, Codex et les autres assistants.
+Fail-open sur toute erreur ; échappatoire ` # mind-ok` en fin de commande.
+Dormant tant que `git commit` est interdit par défaut (`settings.json`), actif
+dès qu'un projet autorise git.
 
-Taxonomie générique (un fichier = un axe), avec une frontière **public / privé** :
+`mind-guard-relais.py` est destiné aux dépôts **multi-domaines** : chaque
+sous-périmètre le pose à la place du hook, et il remonte à la racine par
+`git rev-parse` — sans compter les dossiers, donc sans casser à la première
+réorganisation.
 
-- `.memory/MEMORY.md` — index de tous les fichiers mémoire
-- `.memory/charter.md` — but, périmètre, stack, rôles, contexte métier _(public)_
-- `.memory/architecture.md` — composants, flux, modèle de données, conventions _(public)_
-- `.memory/rules.md` — règles métier, accès, contraintes _(public)_
-- `.memory/decisions.md` — journal des décisions (le pourquoi) _(public)_
-- `.memory/state.md` — fait / en cours / bloqué / à faire _(public)_
-- `.memory/operations.md` — 🔒 hébergement, déploiement, secrets, dépannage _(**privé — jamais publié**)_
-- `.memory/data-model.md` — modélisation détaillée _(conditionnel : projets data-lourds)_
+**`journal`** — `PostToolUse` sur `git commit`. Après chaque commit, ajoute au
+fichier du jour l'empreinte, le sujet, la branche et les fichiers touchés. Il ne
+lit pas le résultat de la commande : il regarde `HEAD`, donc un commit échoué
+n'écrit rien et un double appel ne crée pas deux entrées. Silencieux et
+fail-open — un journal ne doit jamais empêcher de travailler.
 
-Les fichiers **publics** peuvent alimenter un site de doc via `/publish-docs` ; `operations.md` reste privé.
+> La règle « tenir la mémoire à jour » n'est plus seulement *énoncée* dans
+> `CLAUDE.md`, ni confiée à un skill qu'il fallait penser à lancer : elle est
+> **appliquée**. Un journal tenu quand on y pense a des trous exactement les
+> jours chargés — ceux qu'on aurait le plus besoin de relire.
 
-Les fichiers chargés à chaque session (`charter`, `rules`, `state`, `MEMORY.md`) sont volontairement courts ; `state.md` est un **snapshot roulant borné** (pas un journal). `architecture`, `decisions` et `operations` sont lus à la demande.
+### Mémoire — deux dossiers, deux natures
 
-**Journal de bord** : `/memory-update` écrit aussi `logs/<AAAA-MM-JJ>.md` — un journal **committé, append-only** qui raconte, jour par jour, ce qui a été fait (features, décisions, fichiers touchés). Complément de `state.md` (snapshot) : l'historique chronologique complet, jamais élagué ni compressé.
+**`.mind/`** n'énumère que des **faits actuels**, en **exactement cinq
+fichiers**. Le texte périmé s'y **remplace**, il ne s'ajoute pas.
+
+- `.mind/state.md` — en-tête `maj / cap / sante / jalon`, phase, ce qui tient,
+  ce qui ne tient pas _(public)_
+- `.mind/todo.md` — kanban `[ ]` / `[>]` / `[x]`, `!haut`/`!moyen`/`!bas`,
+  `@<qui>` _(public)_
+- `.mind/architecture.md` — domaine, frontières, couches, flux, pièges _(public)_
+- `.mind/stack.md` — outils, stack, environnements _(public)_
+- `.mind/rules.md` — règles métier, accès, contraintes _(public)_
+
+**`.memory/`** garde les **traces datées**, et s'accumule sans plafond.
+
+- `.memory/MEMORY.md` — l'index des deux dossiers
+- `.memory/decisions.md` — le journal des décisions, *append-only* _(public curé)_
+- `.memory/operations.md` — 🔒 hébergement, déploiement, secrets, dépannage
+  _(**privé — jamais publié, jamais cité, jamais résumé**)_
+- `.memory/data-model.md` — modélisation détaillée _(conditionnel : data-lourd)_
+
+**Le test qui tranche** : une phrase qui commence par « on a décidé de », ou qui
+porte une date au passé, va dans `.memory/`. Tout le reste va dans `.mind/`.
+
+**Jamais un sixième fichier dans `.mind/` sans une décision explicite de
+l'humain.** Si un contenu n'y rentre pas, c'est qu'il appartient à `.memory/`.
+
+**Journal de bord** : le hook `journal` écrit `.logs/<AAAA-MM-JJ>.md` à chaque
+commit — committé, *append-only*, jamais élagué ni compressé. Il répond à une
+question que `.mind/state.md` ne sait pas traiter : **qu'a-t-on fait mardi ?**
+Un instantané ne raconte pas l'histoire, un historique ne dit pas où on en est.
 
 ### Site de documentation (optionnel)
 
-- `site/` — moteur Quarto piloté par `site/site.config.yml` (titre, preset `data`/`web`/`api`/`generic`, cible de déploiement `azure`/`ghpages`/`zip`/`none`).
-- `/publish-docs [setup|init|refresh|publish]` — installe les outils (Quarto/Graphviz), génère les pages depuis la mémoire **publique** vers `_content/`, produit un site HTML + livrables Word/PDF, déploie. Ne lit jamais `operations.md` ni les `.env*`.
+- `site/` — moteur Quarto piloté par `site/site.config.yml`
+- `/publish-docs [setup|init|refresh|publish]` — installe les outils
+  (Quarto/Graphviz), génère les pages depuis la mémoire **publique**, produit un
+  site HTML et des livrables Word/PDF, déploie. **Ne lit jamais**
+  `operations.md` ni les `.env*`.
 
 ---
-
-## Outils machine (optionnel)
-
-Le reste du starter est **par projet** : on le clone dans un dépôt. `tools/` est
-la seule exception — de l'outillage **par machine**, installé une fois par
-poste, indépendant du harnais.
-
-### `claude-accounts` — plusieurs comptes Claude Code
-
-Pour un poste qui fait tourner plusieurs agents en continu (tmux, SSH, pilotage
-depuis l'app mobile) avec deux abonnements ou plus, chacun ayant sa limite
-d'usage.
-
-```sh
-sh tools/claude-accounts/install.sh
-source ~/.zshrc
-```
-
-Puis déclarer ses comptes dans `~/.config/claude-accounts/accounts.json` :
-
-```json
-{
-  "accounts": {
-    "perso": { "profile": "default" },
-    "pro":   { "profile": "~/.claude-pro" }
-  }
-}
-```
-
-| Commande | Rôle |
-|---|---|
-| `<compte>` | lance Claude Code sur ce compte |
-| `cwho` | quotas réels des comptes + agents en cours |
-| `tls` | sessions tmux, **tous sockets**, et leur contenu |
-| `cacc switch <compte> --go` | déplace tous les agents vers un compte |
-| `cacc auto --watch --go` | bascule automatique au seuil de quota |
-
-**Le principe.** `CLAUDE_CONFIG_DIR` est une variable d'environnement : donc par
-processus, donc par panneau tmux. Chaque compte a son propre
-`.credentials.json`, et un agent déjà lancé ne peut pas changer de compte sous
-ses pieds. Le *travail* (`projects/`, réglages, plugins) est partagé par
-symlinks entre les profils, donc `--resume` retrouve le même fil depuis
-n'importe quel compte ; seule l'*identité* reste séparée.
-
-Il n'y a donc **jamais de « swap » de credentials** : réécrire ce fichier sous
-des agents vivants les ferait changer de compte au premier renouvellement de
-jeton. `cacc switch` redémarre chaque agent proprement, avec `--resume` sur son
-fil exact, et refuse de toucher un agent au travail.
-
-Documentation complète, pièges compris (profil « default », identifiants de
-panneau propres à chaque socket, ponts Remote Control liés au compte) :
-[`tools/claude-accounts/README.md`](tools/claude-accounts/README.md).
 
 ## Configuration MCP
 
-Copie `.mcp.json.example` vers `.mcp.json`, puis remplis les clés nécessaires.
-
 ```bash
-cp .mcp.json.example .mcp.json
+cp .mcp.json.example .mcp.json          # macOS / Linux
 ```
-
-Sur Windows (PowerShell) :
 
 ```powershell
-Copy-Item .mcp.json.example .mcp.json
+Copy-Item .mcp.json.example .mcp.json   # Windows
 ```
-
----
 
 ## Permissions locales
 
-Les permissions partagées sont dans :
-
-- `.claude/settings.json`
-- `.codex/settings.json`
-
-Pour des ajustements locaux non commités, copie les exemples :
+Les permissions partagées sont dans `.claude/settings.json`. Pour des
+ajustements locaux non commités :
 
 ```bash
 cp .claude/settings.local.json.example .claude/settings.local.json
-cp .codex/settings.local.json.example .codex/settings.local.json
 ```
-
-Sur Windows (PowerShell) :
 
 ```powershell
 Copy-Item .claude/settings.local.json.example .claude/settings.local.json
-Copy-Item .codex/settings.local.json.example .codex/settings.local.json
 ```
 
 ---
 
+## Portabilité
+
+Le starter tourne sur **macOS et Windows**, en une seule version — jamais deux
+variantes. Deux conséquences concrètes :
+
+- **Python est une dépendance dure** : les hooks en ont besoin. Le nom de
+  l'interpréteur diffère (`python` sur Windows, `python3` sur macOS), c'est
+  pourquoi `settings.json` déclare le hook **deux fois**. Celle dont
+  l'interpréteur manque échoue au démarrage, sans sortie donc sans décision.
+- **Aucun script propre à un OS** : ni PowerShell seul, ni shell POSIX seul. Un
+  outil qu'une des deux machines ne peut pas lancer ne signale jamais qu'il est
+  mort.
+
+## RTK — réduire les jetons dépensés en sortie de shell
+
+[RTK](https://github.com/rtk-ai/rtk) est un binaire Rust qui intercepte la
+sortie des commandes shell et la compresse avant qu'elle n'atteigne le contexte
+de l'agent : annoncé à **60-90 %** de moins sur les commandes de développement
+courantes. Il couvre une centaine de commandes — `git`, `ls`, `grep`, `find`,
+`docker`, `kubectl`, `pytest`, `cargo`, `gh`…
+
+**Le binaire ne fait pas partie du starter, et c'est délibéré.** Il s'installe
+sur la **machine**, une fois pour toutes les sessions ; le starter pose
+l'architecture d'un **projet**. Le vendre avec le dépôt reviendrait à y remettre
+une pièce d'exploitation de poste.
+
+```bash
+brew install rtk        # macOS ; Linux : curl -fsSL .../install.sh | sh
+rtk init -g             # câble le hook de réécriture, puis redémarrer Claude Code
+```
+
+Windows a un binaire natif (≥ 0.37.2). Sur macOS et Linux, le hook de RTK est un
+script bash qui a besoin de **`jq`** et de **`rg`** ; sans eux il prévient sur
+`stderr` et se retire — il ne casse rien.
+
+Ce qui appartient au projet, en revanche, est **`.rtk/filters.toml`** : les
+filtres propres à ce dépôt, commités, qui surchargent les filtres globaux. Le
+starter le fournit, commenté. Sans RTK installé il est inerte.
+
+> N'écris pas de filtres à l'avance. Laisse tourner, puis `rtk gain` dit
+> **quelles** commandes coûtent vraiment. Un filtre écrit d'avance compresse du
+> bruit imaginaire.
+
+### Ce que RTK change pour les deux hooks — à lire avant de l'installer
+
+RTK réécrit `git commit` en `rtk git commit`, et son hook renvoie un
+`permissionDecision: "allow"` accompagné du `updatedInput`. Les deux hooks du
+starter se déclenchent précisément sur `git commit`. D'où deux points de
+contact, traités dans `settings.json` :
+
+1. **Les déclencheurs** — `mind-guard` et `journal` sont déclarés sur
+   `Bash(git commit*)` **et** sur `Bash(rtk git commit*)`. Sans quoi un hook
+   parfaitement sain cesserait de se déclencher le jour où quelqu'un installe
+   RTK, sans rien dire. C'est le mode de panne qu'on vient de corriger sur
+   `memory-guard` — on ne le réintroduit pas par la porte de derrière.
+2. **Le verrou git** — la liste `deny` couvre aussi `rtk git commit*` et
+   `rtk git push*`, sinon la réécriture suffisait à le contourner.
+
+**Ce qui n'est pas mesuré, et qu'il faut mesurer une fois.** L'ordre entre le
+hook global de RTK et les hooks du projet n'a pas été vérifié : si RTK réécrit
+la commande **avant** que `mind-guard` ne la voie, c'est le déclencheur
+`rtk git commit*` qui joue ; sinon c'est l'autre. Les deux sont posés, donc le
+cas est couvert dans les deux sens — mais **le seul contrôle qui vaut est un
+commit d'essai** : tenter un commit de code sans toucher à `.mind/`, et vérifier
+que `mind-guard` refuse toujours et que `.logs/<jour>.md` s'écrit toujours. Un
+hook qu'on n'a pas vu se déclencher n'est pas un hook vérifié.
+
 ## Contribuer
 
-Tout passe par des **skills** (les deux harnais sont maintenus en miroir) :
-
-- `.claude/skills/`
-- `.codex/skills/`
-
-Toute modification d'un skill doit être répercutée à l'identique dans les deux dossiers. Garde la mémoire projet dans `.memory/` afin qu'elle reste indépendante d'un assistant spécifique.
+Tout passe par des **skills**, dans `.claude/skills/`. Garde la mémoire dans
+`.mind/` et `.memory/`, à la racine du projet : elle appartient au projet, pas
+au harnais.

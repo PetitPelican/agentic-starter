@@ -20,7 +20,7 @@ Phase actuelle : [MVP / Growth / Prod].
 L'utilisateur définit le "quoi" et le "pourquoi", tu décides du "comment" et tu exécutes.
 
 - Décisions techniques = tu les prends, tu les justifies en 1 phrase
-- Tu invoques le skill adéquat quand il couvre la tâche (`memory-update`, `publish-docs`, `audit`…)
+- Tu invoques le skill adéquat quand il couvre la tâche (`publish-docs`, `agentic-sync`…)
 - Demande confirmation uniquement pour les actions destructives ou irréversibles
 
 ---
@@ -30,7 +30,7 @@ L'utilisateur définit le "quoi" et le "pourquoi", tu décides du "comment" et t
 <!-- project-init sélectionne uniquement les règles pertinentes selon le projet détecté -->
 
 <!-- Projets avec git -->
-<!-- 1. **Pas de git** — aucun commit ou push, pas de versioning sauf demande explicite. Avant tout commit+push, mettre à jour directement les fichiers `.memory/*.md` concernés. -->
+<!-- 1. **Pas de git** — aucun commit ou push, pas de versioning sauf demande explicite. Avant tout commit, mettre à jour `.mind/state.md` et `.mind/todo.md`. -->
 
 <!-- Projets TypeScript -->
 <!-- 2. **TypeScript strict** — `any` interdit. -->
@@ -58,9 +58,18 @@ L'utilisateur définit le "quoi" et le "pourquoi", tu décides du "comment" et t
 
 ## Mémoire projet
 
-La mémoire vit dans `.memory/` (un fichier = un axe). **L'index et la stratégie de lecture — quoi lire en début de session vs à la demande, frontière public/privé — sont dans [`.memory/MEMORY.md`](.memory/MEMORY.md)**, chargé à chaque session : s'y référer, ne pas redupliquer cette carte ici.
+La mémoire tient en **deux dossiers, deux natures**. `.mind/` n'énumère que des **faits actuels**, en exactement cinq fichiers : le texte périmé s'y **remplace**. `.memory/` garde les **traces datées**, et s'accumule. Le test qui tranche : une phrase qui commence par « on a décidé de », ou qui porte une date au passé, va dans `.memory/`.
 
-Mettre à jour : `/memory-update` (écrit aussi le journal `logs/<AAAA-MM-JJ>.md` — committé, append-only). Publier la doc publique : `/publish-docs` (ne lit jamais `operations.md`). Le hook **`memory-guard`** (câblé dans `settings.json`) bloque un `git push` de code sans mise à jour `.memory/` — dormant tant que git est interdit par défaut.
+**L'index et la stratégie de lecture — quoi lire en début de session vs à la demande, frontière public/privé — sont dans [`.memory/MEMORY.md`](.memory/MEMORY.md)**, chargé à chaque session : s'y référer, ne pas redupliquer cette carte ici.
+
+**Tenir `.mind/` à jour fait partie du travail, pas de la paperasse d'après.** Avant de rendre la main, `state.md` et `todo.md` disent l'état réel. Publier la doc publique : `/publish-docs` (ne lit jamais `operations.md`).
+
+Deux hooks (câblés dans `settings.json`) rendent ça structurel :
+
+- **`mind-guard`** refuse un `git commit` de code qui laisserait `.mind/state.md` ou `.mind/todo.md` en arrière — ou qui les rendrait illisibles, ce qui ferait disparaître le projet du tableau de bord **sans bruit**. Échappatoire ` # mind-ok`.
+- **`journal`** écrit après chaque commit dans `.logs/<AAAA-MM-JJ>.md` : un fichier par jour, append-only. C'est l'historique ; `.mind/state.md` est l'instantané.
+
+Tous deux sont dormants tant que git est interdit par défaut. Si [RTK](https://github.com/rtk-ai/rtk) est installé sur la machine, il réécrit `git commit` en `rtk git commit` : les deux hooks sont déclarés sur les **deux** formes, et `.rtk/filters.toml` porte les filtres de ce dépôt.
 
 ---
 
@@ -73,6 +82,3 @@ Tu as accès aux outils suivants — avant toute action, demande l'accord de l'u
 
 **CLI**
 - [À COMPLÉTER par project-init]
-<!-- Si `tools/claude-accounts` est installé sur la machine — LECTURE SEULE.
-     Ne jamais proposer `switch`/`auto` : elles redémarrent tous les agents. -->
-- `claude-accounts status` — quotas des comptes Claude · `claude-accounts sessions` — agents en cours

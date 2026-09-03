@@ -6,7 +6,7 @@ title: "Objectifs & Périmètre"
 
 ## Résumé
 
-_Page exemple — remplacée par `/doc-site refresh` à partir de `.memory/charter.md`._
+_Page exemple — remplacée par `/publish-docs refresh` à partir du champ `cap:` de `.mind/state.md` et des frontières de `.mind/architecture.md`._
 
 Décrire ici l'**objectif** du domaine, son **périmètre** (dans / hors), et le **contexte métier**.
 

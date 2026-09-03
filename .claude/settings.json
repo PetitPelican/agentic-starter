@@ -10,20 +10,114 @@
     ],
     "deny": [
       "Bash(git commit*)",
-      "Bash(git push*)"
+      "Bash(git push*)",
+      "Bash(rtk git commit*)",
+      "Bash(rtk git push*)"
     ]
   },
   "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python .claude/hooks/briefing.py",
+            "timeout": 15,
+            "statusMessage": "briefing (.mind) [python]"
+          },
+          {
+            "type": "command",
+            "command": "python3 .claude/hooks/briefing.py",
+            "timeout": 15,
+            "statusMessage": "briefing (.mind) [python3]"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python .claude/hooks/briefing.py",
+            "timeout": 15,
+            "statusMessage": "briefing si .mind a changé [python]"
+          },
+          {
+            "type": "command",
+            "command": "python3 .claude/hooks/briefing.py",
+            "timeout": 15,
+            "statusMessage": "briefing si .mind a changé [python3]"
+          }
+        ]
+      }
+    ],
     "PreToolUse": [
       {
         "matcher": "Bash",
         "hooks": [
           {
             "type": "command",
-            "command": "python .claude/hooks/memory-guard.py",
-            "if": "Bash(git push*)",
+            "command": "python .claude/hooks/mind-guard.py",
+            "if": "Bash(git commit*)",
             "timeout": 20,
-            "statusMessage": "Garde-fou mémoire (git push)"
+            "statusMessage": "mind-guard (git commit) [python]"
+          },
+          {
+            "type": "command",
+            "command": "python3 .claude/hooks/mind-guard.py",
+            "if": "Bash(git commit*)",
+            "timeout": 20,
+            "statusMessage": "mind-guard (git commit) [python3]"
+          },
+          {
+            "type": "command",
+            "command": "python .claude/hooks/mind-guard.py",
+            "if": "Bash(rtk git commit*)",
+            "timeout": 20,
+            "statusMessage": "mind-guard (rtk git commit) [python]"
+          },
+          {
+            "type": "command",
+            "command": "python3 .claude/hooks/mind-guard.py",
+            "if": "Bash(rtk git commit*)",
+            "timeout": 20,
+            "statusMessage": "mind-guard (rtk git commit) [python3]"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python .claude/hooks/journal.py",
+            "if": "Bash(git commit*)",
+            "timeout": 20,
+            "statusMessage": "journal (.logs) [python]"
+          },
+          {
+            "type": "command",
+            "command": "python3 .claude/hooks/journal.py",
+            "if": "Bash(git commit*)",
+            "timeout": 20,
+            "statusMessage": "journal (.logs) [python3]"
+          },
+          {
+            "type": "command",
+            "command": "python .claude/hooks/journal.py",
+            "if": "Bash(rtk git commit*)",
+            "timeout": 20,
+            "statusMessage": "journal (.logs, rtk) [python]"
+          },
+          {
+            "type": "command",
+            "command": "python3 .claude/hooks/journal.py",
+            "if": "Bash(rtk git commit*)",
+            "timeout": 20,
+            "statusMessage": "journal (.logs, rtk) [python3]"
           }
         ]
       }

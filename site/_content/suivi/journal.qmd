@@ -2,7 +2,7 @@
 title: "Journal des modifications"
 ---
 
-_Dernières modifications, datées et par domaine. Alimenté par `/doc-site refresh` depuis `.memory/state.md`._
+_Dernières modifications, datées et par domaine. Alimenté par `/publish-docs refresh` depuis les `.logs/<AAAA-MM-JJ>.md`, que le hook `journal` écrit à chaque commit._
 
 | Date | Domaine | Modification | Statut |
 |---|---|---|---|

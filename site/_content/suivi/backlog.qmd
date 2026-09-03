@@ -2,6 +2,6 @@
 title: "Backlog"
 ---
 
-_Ce qui reste à faire, priorisé par domaine. Depuis `.memory/state.md` (section « Bloqué / à faire »)._
+_Ce qui reste à faire, priorisé par domaine. Depuis `.mind/todo.md` — les tâches `- [ ]` sous `## Chantiers`, avec leurs marqueurs `!haut` / `!moyen` / `!bas`._
 
 - _(à remplir)_

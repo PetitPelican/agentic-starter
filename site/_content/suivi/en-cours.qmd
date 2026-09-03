@@ -2,6 +2,6 @@
 title: "En cours"
 ---
 
-_Ce qui est en cours de traitement, par domaine. Depuis `.memory/state.md` (section « En cours »)._
+_Ce qui est en cours de traitement, par domaine. Depuis `.mind/todo.md` — les tâches `- [>]` sous `## Chantiers`._
 
 - _(à remplir)_

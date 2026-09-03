@@ -2,7 +2,7 @@
 title: "Architecture & flux"
 ---
 
-_Page exemple — remplacée par `/doc-site refresh` à partir de `.memory/architecture.md`._
+_Page exemple — remplacée par `/publish-docs refresh` à partir de `.mind/architecture.md`._
 
 ## Vue d'ensemble
 

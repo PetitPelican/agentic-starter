@@ -2,7 +2,7 @@
 title: "Points ouverts"
 ---
 
-_Page exemple — alimentée par `/doc-site refresh` depuis `.memory/state.md` et `.memory/decisions.md`._
+_Page exemple — alimentée par `/publish-docs refresh` depuis `.memory/decisions.md` et `.mind/todo.md`._
 
 | Sujet | Statut |
 |---|---|
