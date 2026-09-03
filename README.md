@@ -47,11 +47,6 @@ on monte l'**atelier** : la couche au-dessus.
 - **`~/Agentic/cto/`** — le poste du CTO : harnais complet, mémoire, dépôt git.
   Il sait ensuite monter les projets un par un.
 
-> ⚠️ **Tant que la branche `mind-architecture` n'est pas fusionnée dans `main`**,
-> ajouter `--branch mind-architecture` à **tous** les `git clone` de ce README :
-> `main` est une version antérieure, et le clone réussirait sans rien signaler.
-> Cette réserve disparaît le jour de la fusion — supprimer ce paragraphe alors.
-
 ### La bonne façon : le faire faire à un agent
 
 Le `SKILL.md` d'`atelier-init` est **écrit pour être suivi par un agent**, pas
