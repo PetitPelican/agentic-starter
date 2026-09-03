@@ -40,6 +40,67 @@ boîte et comment s'en servir.
 Le starter monte **un projet**. Avant le premier projet, sur une machine neuve,
 on monte l'**atelier** : la couche au-dessus.
 
+Ça pose deux choses, et rien d'autre :
+
+- **`~/Agentic/CLAUDE.md`** — la **méthode**, héritée par tout agent ouvert dans
+  un sous-dossier. C'est l'artefact qui se transporte d'une machine à l'autre.
+- **`~/Agentic/cto/`** — le poste du CTO : harnais complet, mémoire, dépôt git.
+  Il sait ensuite monter les projets un par un.
+
+> ⚠️ **Tant que la branche `mind-architecture` n'est pas fusionnée dans `main`**,
+> ajouter `--branch mind-architecture` à **tous** les `git clone` de ce README :
+> `main` est une version antérieure, et le clone réussirait sans rien signaler.
+> Cette réserve disparaît le jour de la fusion — supprimer ce paragraphe alors.
+
+### La bonne façon : le faire faire à un agent
+
+Le `SKILL.md` d'`atelier-init` est **écrit pour être suivi par un agent**, pas
+lu par un humain. Autant s'en servir.
+
+**Où ouvrir la session, et c'est le seul piège de toute la procédure.** Crée
+`~/Agentic`, et ouvre l'agent **là** — pas dans `~/Agentic/cto`, qui n'existe
+pas encore et que le script crée lui-même. Le socle va **un niveau au-dessus**
+du dossier du CTO : posé à l'intérieur, il ne serait lu que par le CTO et
+**aucun projet n'en hériterait**. Aucune erreur ne le signalerait, la méthode
+serait simplement sans effet.
+
+Puis colle ceci :
+
+```text
+Monte l'atelier agentique sur cette machine.
+
+1. Clone le starter à côté, PAS ici :
+   git clone https://github.com/PetitPelican/claude-starter.git /tmp/claude-starter
+
+2. Lis /tmp/claude-starter/.claude/skills/atelier-init/SKILL.md et suis-le.
+   Racine = ce dossier, CTO = `cto` en minuscules, utilisateur = <TonPrénom>.
+
+3. Lance le script en DRY-RUN d'abord et montre-moi le rapport.
+   N'applique rien avant que je te le dise.
+
+4. Après --apply, deux choses que le script ne fait pas et que j'attends de toi :
+   - remplis .mind/state.md et .mind/todo.md du CTO. Ils arrivent en gabarit
+     avec `maj: YYYY-MM-DD` : tant qu'ils sont vides, mind-guard refusera le
+     premier commit et le briefing annoncera « EN-TÊTE ILLISIBLE ». C'est voulu.
+   - prouve les hooks : un commit d'essai de code sans toucher .mind/ doit être
+     REFUSÉ, puis .logs/<jour>.md doit s'écrire au commit suivant. Un hook qu'on
+     n'a pas vu se déclencher n'est pas un hook vérifié.
+
+Ensuite j'ouvrirai une session dans ~/Agentic/cto, et c'est de là qu'on montera
+les projets un par un.
+```
+
+Le prompt **pointe le `SKILL.md`** au lieu de recopier ses étapes. Une copie se
+périmerait le jour où le skill change, et personne ne le verrait — c'est la même
+raison qui fait qu'il n'existe pas de version « pour humains » du socle.
+
+> **Le nom du dossier est une adresse.** `cto` en minuscules, décidé une fois
+> pour toutes : la mémoire auto de Claude Code est indexée par le **chemin de
+> travail**. Renommer le dossier plus tard l'orpheline en entier, transcripts
+> compris, **sans afficher la moindre erreur**.
+
+### À la main, si tu préfères
+
 ```bash
 git clone https://github.com/PetitPelican/claude-starter.git /tmp/claude-starter
 python3 /tmp/claude-starter/.claude/skills/atelier-init/scripts/atelier-init.py \
@@ -47,12 +108,16 @@ python3 /tmp/claude-starter/.claude/skills/atelier-init/scripts/atelier-init.py 
 # lire le rapport, puis relancer avec --apply
 ```
 
-Ça pose deux choses, et rien d'autre :
+Sur Windows, l'interpréteur s'appelle `python`, et le dossier temporaire
+`$env:TEMP\claude-starter`.
 
-- **`~/Agentic/CLAUDE.md`** — la **méthode**, héritée par tout agent ouvert dans
-  un sous-dossier. C'est l'artefact qui se transporte d'une machine à l'autre.
-- **`~/Agentic/cto/`** — le poste du CTO : harnais complet, mémoire, dépôt git.
-  Il sait ensuite monter les projets un par un.
+### Prérequis, dans l'ordre où ils bloquent
+
+| | Pourquoi |
+|---|---|
+| **Python** | dépendance dure — les quatre hooks en ont besoin. `python` sur Windows, `python3` sur macOS. |
+| **git** | sans dépôt, `mind-guard` et `journal` sont **inertes** — et ne le disent pas. |
+| **un compte Claude Code** | avec l'isolation qui convient si la machine en sert plusieurs. |
 
 Trois couches, une seule voyage :
 
