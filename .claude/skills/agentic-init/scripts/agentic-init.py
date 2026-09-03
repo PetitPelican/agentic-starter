@@ -169,6 +169,32 @@ def main():
 
     if not a.apply:
         print("\nDry-run seulement. Relancer avec --apply pour appliquer.")
+        return
+
+    # La passe-main. Elle vient EN DERNIER et se voit : cette session-ci n'était
+    # qu'un amorçage, et continuer à travailler depuis la racine coûte trois
+    # choses dont une ne se rattrape pas — la mémoire auto de l'agent est
+    # indexée sur le chemin de travail, donc tout ce qui s'apprendrait ici
+    # serait rangé sous une clé que le CTO n'ouvrira jamais.
+    print("""
+%s
+  L'ATELIER EST EN PLACE. CETTE SESSION N'A PLUS D'OBJET.
+
+  Avant de la fermer, remplir `%s/.mind/state.md` et `todo.md` :
+  cette session est la seule à savoir ce qui vient d'être monté.
+
+  Puis OUVRIR UNE NOUVELLE SESSION DANS :
+      %s
+
+  Pourquoi changer de dossier, et pas continuer ici :
+    · les hooks sont déclarés dans son settings.json — ici ils sont inertes ;
+    · son CLAUDE.md porte le rôle du CTO — ici on ne lit que la méthode ;
+    · la mémoire auto est indexée sur le CHEMIN. Ce qui s'apprendrait ici
+      serait rangé sous une clé que le CTO n'ouvrira jamais, et la mémoire
+      d'une session ne se déplace pas.
+
+  C'est de là que se montent les projets, un par un.
+%s""" % ("─" * 72, cto.name, cto, "─" * 72))
 
 
 if __name__ == "__main__":

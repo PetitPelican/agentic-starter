@@ -115,6 +115,36 @@ Le **tri de mémoire** est le seul vrai travail de jugement : les scripts
 signalent une taxonomie ancienne, ils ne la migrent jamais d'office. Trier
 demande de lire le contenu, et le contenu appartient au projet.
 
+## Dernière étape — passer la main, et le DIRE
+
+**La session qui monte l'atelier n'est pas celle qui l'exploite.** Elle a été
+ouverte à la racine ; le CTO vit un dossier plus bas. Quand tout est en place,
+ne pas enchaîner : **prévenir l'utilisateur, explicitement, et s'arrêter là.**
+
+Dans cet ordre :
+
+1. **Remplir `<cto>/.mind/state.md` et `<cto>/.mind/todo.md`.** Cette session est
+   la seule à savoir ce qui vient d'être monté ; ce savoir ne survit pas à sa
+   fermeture. Tant qu'ils sont en template, le briefing du CTO annoncera
+   « EN-TÊTE ILLISIBLE » et `mind-guard` refusera son premier commit.
+2. **Annoncer que l'atelier est en place**, et nommer le chemin exact où ouvrir
+   la session suivante : `<racine>/<cto>`.
+3. **Dire pourquoi il faut changer de dossier**, sans quoi l'utilisateur
+   continuera ici et perdra trois choses :
+   - les hooks sont déclarés dans le `settings.json` du CTO — à la racine ils
+     sont **inertes** ;
+   - le rôle du CTO est dans **son** `CLAUDE.md` — à la racine on ne lit que la
+     méthode, donc la méthode sans le mandat ;
+   - **la mémoire auto est indexée sur le chemin de travail.** Ce qui
+     s'apprendrait à la racine serait rangé sous une clé que le CTO n'ouvrira
+     jamais. C'est le seul des trois qui ne se rattrape pas : la mémoire d'une
+     session ne se déplace pas.
+4. **Ne pas monter de projet depuis ici.** C'est le travail du CTO, depuis son
+   dossier.
+
+Le script imprime déjà ce bloc après `--apply`. **Le relayer quand même** : une
+sortie de script se lit en diagonale, une phrase de l'agent se lit.
+
 ## Règles
 
 - **Rien n'est jamais écrasé.** Un `CLAUDE.md` déjà présent à la racine ou chez

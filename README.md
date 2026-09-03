@@ -81,8 +81,10 @@ Monte l'atelier agentique sur cette machine.
      REFUSÉ, puis .logs/<jour>.md doit s'écrire au commit suivant. Un hook qu'on
      n'a pas vu se déclencher n'est pas un hook vérifié.
 
-Ensuite j'ouvrirai une session dans ~/Agentic/cto, et c'est de là qu'on montera
-les projets un par un.
+5. Quand tout est en place, PRÉVIENS-MOI explicitement et arrête-toi là :
+   dis-moi que l'atelier est monté, donne-moi le chemin exact où rouvrir une
+   session (~/Agentic/cto), et rappelle-moi pourquoi il faut changer de dossier.
+   Ne monte aucun projet depuis ici — c'est le travail du CTO, depuis chez lui.
 ```
 
 Le prompt **pointe le `SKILL.md`** au lieu de recopier ses étapes. Une copie se
