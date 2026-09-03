@@ -1,7 +1,7 @@
 ---
 name: project-init
 description: >
-  Initialise la structure agentic-starter d'un nouveau projet.
+  Initialise la structure claude-starter d'un nouveau projet.
   Scanne tous types de fichiers, détecte la stack, suggère MCPs/CLIs, pose 6 questions,
   personnalise CLAUDE.md (rôle, règles adaptées), pré-remplit les fichiers mémoire,
   propose le site de doc (/publish-docs).
@@ -17,24 +17,23 @@ Le dossier `.claude/` doit être présent dans le projet.
 
 **Nouveau projet (répertoire vide) :**
 ```bash
-git clone https://github.com/PetitPelican/agentic-starter.git .
+git clone https://github.com/PetitPelican/claude-starter.git .
 ```
 
 **Projet existant (code déjà présent) :**
 ```bash
 # Linux / Mac
-git clone https://github.com/PetitPelican/agentic-starter.git /tmp/agentic-starter
-cp -r /tmp/agentic-starter/.claude ./
-rm -rf /tmp/agentic-starter
+git clone https://github.com/PetitPelican/claude-starter.git /tmp/claude-starter
+cp -r /tmp/claude-starter/.claude ./
+rm -rf /tmp/claude-starter
 
 # Windows PowerShell
-git clone https://github.com/PetitPelican/agentic-starter.git $env:TEMP\agentic-starter
-Copy-Item -Recurse "$env:TEMP\agentic-starter\.claude" ".\.claude"
-Copy-Item -Recurse "$env:TEMP\agentic-starter\.codex" ".\.codex"   # (si tu veux aussi Codex)
-Remove-Item -Recurse -Force "$env:TEMP\agentic-starter"
+git clone https://github.com/PetitPelican/claude-starter.git $env:TEMP\claude-starter
+Copy-Item -Recurse "$env:TEMP\claude-starter\.claude" ".\.claude"
+Remove-Item -Recurse -Force "$env:TEMP\claude-starter"
 ```
 
-Si `.claude/` (ou `.codex/`) est absent, affiche ces instructions et arrête. Le choix du harnais à conserver se fait en Phase 0.
+Si `.claude/` est absent, affiche ces instructions et arrête.
 
 ---
 
@@ -76,8 +75,8 @@ des fichiers (choix du harnais, refus du site) sont consignées dans
 | 4 — permissions | `defaultMode: bypassPermissions` dans `.claude/settings.local.json` | l'ajouter |
 
 ```bash
-grep -rl "\[PROJECT_NAME\]" CLAUDE.md AGENTS.md .memory/*.md 2>/dev/null
-ls -d .claude .codex site/_content/example 2>/dev/null
+grep -rl "\[PROJECT_NAME\]" CLAUDE.md .mind/*.md .memory/*.md 2>/dev/null
+ls -d .claude .mind .memory site/_content/example 2>/dev/null
 grep -q "bypassPermissions" .claude/settings.local.json 2>/dev/null && echo "phase 4 ok"
 grep -q "^## Initialisation" .memory/decisions.md 2>/dev/null && echo "phase 2 ok"
 ```
@@ -85,7 +84,7 @@ grep -q "^## Initialisation" .memory/decisions.md 2>/dev/null && echo "phase 2 o
 Affichage attendu :
 
 ```
-  Phase 0  harnais       ✅ Codex retiré
+  Phase 0  harnais       ✅ .claude/ seul
   Phase 1  scan          ↻ à refaire (rapide)
   Phase 2  questions     ✅ 6/6 consignées dans decisions.md
   Phase 3  contexte      ⏳ CLAUDE.md ok · .memory/ : 4 fichiers avec [PROJECT_NAME]
@@ -106,36 +105,15 @@ non-régression au skill lui-même.
 
 ---
 
-## Phase 0 — Choix du/des agent(s)
+## Phase 0 — Vérifier le harnais
 
-Avant tout, demande à l'utilisateur quel(s) assistant(s) il compte utiliser sur ce projet :
+**Un seul harnais : `.claude/` + `CLAUDE.md`.** Le starter en portait un second
+en miroir jusqu'au 03/09/2026 ; il a été retiré, et il n'y a plus rien à choisir.
 
-« Quel(s) assistant(s) vas-tu utiliser sur ce projet ? »
-- **Claude Code** uniquement
-- **Codex** uniquement
-- **Les deux**
-
-Le starter embarque les deux harnais en miroir (`.claude/` + `CLAUDE.md` pour Claude Code, `.codex/` + `AGENTS.md` pour Codex). Selon la réponse, **supprime le harnais non retenu** (action destructive → afficher la liste exacte des chemins et demander une confirmation unique avant de supprimer) :
-
-| Réponse | Garder | Supprimer |
-|---|---|---|
-| Claude Code | `.claude/`, `CLAUDE.md` | `.codex/`, `AGENTS.md` |
-| Codex | `.codex/`, `AGENTS.md` | `.claude/`, `CLAUDE.md` |
-| Les deux | tout | rien |
-
-```bash
-# Claude Code uniquement
-rm -rf .codex AGENTS.md          # Linux/Mac
-Remove-Item -Recurse -Force .codex, AGENTS.md   # Windows PowerShell
-
-# Codex uniquement
-rm -rf .claude CLAUDE.md
-Remove-Item -Recurse -Force .claude, CLAUDE.md
-```
-
-Pour la suite de l'init, ne personnalise et ne cite que le(s) fichier(s) de contexte conservé(s) (`CLAUDE.md` et/ou `AGENTS.md`).
-
-> Note : si tu es en train d'exécuter ce skill, c'est que le harnais courant existe. Ne supprime jamais le harnais depuis lequel tu tournes sans confirmation explicite (ex. Codex ne s'auto-supprime pas `.codex/` s'il l'utilise).
+Si le projet contient un `.codex/` ou un `AGENTS.md`, c'est un reste de cette
+époque : **signale-le et propose sa suppression** (action destructive → afficher
+la liste exacte des chemins et demander une confirmation unique). Ne le recrée
+jamais.
 
 **Consigne le choix** dans `.memory/decisions.md` (bloc `## Initialisation`, créé
 s'il manque) : c'est la seule façon de distinguer « les deux harnais retenus »
@@ -277,7 +255,7 @@ Si un service est détecté mais son MCP n'est pas dans `.mcp.json`, suggère-le
 ```markdown
 ## Initialisation
 
-- harnais : Claude Code | Codex | les deux
+- harnais : Claude Code
 - Q1 nom / description : …
 - Q2 rôle : …
 - Q3 type de projet : …
@@ -294,9 +272,9 @@ décisions d'init relisibles bien après, ce que `decisions.md` est fait pour.
 
 ## Phase 3 — Personnalisation
 
-### Fichier(s) de contexte (`CLAUDE.md` et/ou `AGENTS.md` selon Phase 0)
+### Fichier de contexte (`CLAUDE.md`)
 
-Applique les remplacements ci-dessous au(x) fichier(s) conservé(s) en Phase 0 — `CLAUDE.md` pour Claude Code, `AGENTS.md` pour Codex, les deux si « Les deux ». Le contenu est identique dans les deux fichiers.
+Applique les remplacements ci-dessous à `CLAUDE.md`.
 
 **Section Rôle** — remplacer :
 - `[PROJECT_NAME]` → nom du projet
@@ -326,23 +304,35 @@ Ne pas inclure une règle si elle ne s'applique pas au projet. Ne pas laisser le
 
 **Section Outils** — remplir avec les outils confirmés en Q5 uniquement. Si MCP suggéré mais pas encore installé, le lister avec la mention `(à installer)`.
 
-### Memory (taxonomie : charter / architecture / rules / decisions / state / operations)
+### Mémoire — deux dossiers, deux natures
 
-- `charter.md` : remplacer `[PROJECT_NAME]` + date ; description (Q1), stack détectée, rôles (Q2 + mentionnés), but & périmètre. Ajouter une section « Clients & facturation » **uniquement** si paiements confirmés (Q4).
-- `architecture.md` : remplacer `[PROJECT_NAME]` + pré-remplir depuis le scan :
+`.mind/` n'énumère que des **faits actuels**, en **exactement cinq fichiers** : le texte périmé s'y **remplace**, il ne s'ajoute pas. `.memory/` garde les **traces datées**, et s'accumule sans plafond. Le test qui tranche : une phrase qui commence par « on a décidé de », ou qui porte une date au passé, va dans `.memory/`. **Jamais un sixième fichier dans `.mind/`.**
+
+Il n'y a pas de `charter.md` : ce que le projet doit produire tient dans le champ `cap:` de `.mind/state.md`, son rôle dans `CLAUDE.md`, ses frontières dans `.mind/architecture.md`.
+
+#### `.mind/` — les cinq
+
+- `state.md` : remplacer `[PROJECT_NAME]` ; **en-tête obligatoire** `maj` (date du jour, ISO), `cap` (ce que le projet doit produire, une phrase — son but, pas son domaine, depuis Q1), `sante`, `jalon`. C'est ce que lit le tableau de bord : un en-tête cassé fait sortir le projet **sans bruit**.
+- `todo.md` : le dialecte du tableau de bord — `- [ ]` / `- [>]` / `- [x]`, marqueurs `!haut`/`!moyen`/`!bas` et `@<qui>` (dont `@dehors`, réservé). Seul ce qui suit le titre `## Chantiers` est lu. Y poser les premières tâches issues du scan.
+- `stack.md` : outils, stack détectée, environnements (Q5). Lister avec `(à installer)` un MCP suggéré mais absent.
+- `rules.md` : contraintes (Q6) + règles d'accès (RBAC/RLS) si multi-tenant / RBAC (Q6)
+- `architecture.md` : domaine, frontières (dans / hors), rôles (Q2), puis pré-remplir depuis le scan :
   - **Sources & ingestion** → connecteurs / APIs / webhooks détectés
   - **Traitement / pipeline** → outils détectés (dbt, Airflow, ADF, scripts Python, etc.)
   - **Stockage** → BDD détectées (Snowflake, PostgreSQL, Supabase, S3, etc.)
   - **API / backend** & **Frontend / dataviz** → frameworks détectés (FastAPI, Next.js, Power BI, Expo…)
   - **Flux de données** → schéma `SOURCE → TRAITEMENT → STOCKAGE → API → FRONTEND` avec les vrais noms
-  - **Modèle de données** → entités principales (détailler dans `data-model.md` si data-lourd)
+  - **Modèle de données** → entités principales (détailler dans `.memory/data-model.md` si data-lourd)
   - Laisser vide les couches non détectées plutôt que de deviner
-- `rules.md` : remplacer `[PROJECT_NAME]` + contraintes (Q6) + règles d'accès (RBAC/RLS) si multi-tenant / RBAC (Q6)
-- `decisions.md` : remplacer `[PROJECT_NAME]` + une entrée initiale si un choix de stack marquant ressort du scan ; sinon laisser le gabarit
-- `state.md` : remplacer `[PROJECT_NAME]` + date du jour
-- `operations.md` : remplacer `[PROJECT_NAME]` + **référencer** (sans valeurs) où vivent les secrets (`.env*.local`, coffre…) et l'hébergement détecté (cloud via CLIs). 🔒 privé — jamais publié.
-- `data-model.md` : conserver **uniquement** si SQL/warehouse ou data pipeline (Q4) ; pré-remplir les couches pertinentes (raw/staging/marts) ; sinon **supprimer** (le modèle vit dans `architecture.md`)
+
+#### `.memory/` — les traces
+
+- `decisions.md` : remplacer `[PROJECT_NAME]` + une entrée datée si un choix de stack marquant ressort du scan ; sinon laisser le gabarit
+- `operations.md` : remplacer `[PROJECT_NAME]` + **référencer** (sans valeurs) où vivent les secrets (`.env*.local`, coffre…) et l'hébergement détecté (cloud via CLIs). 🔒 privé — jamais ouvert, jamais cité, jamais résumé, jamais publié.
+- `data-model.md` : conserver **uniquement** si SQL/warehouse ou data pipeline (Q4) ; pré-remplir les couches pertinentes (raw/staging/marts) ; sinon **supprimer** (le modèle vit dans `.mind/architecture.md`)
 - `MEMORY.md` : remplacer `[PROJECT_NAME]` + retirer la ligne `data-model.md` si le fichier a été supprimé
+
+Ne rien laisser en `[PROJECT_NAME]`, et ne jamais poser `.mind/` à un niveau intermédiaire : le tableau de bord n'en cherche qu'un, à la racine du dépôt.
 
 ### MCPs non installés
 
@@ -386,13 +376,13 @@ Vérifie que le fichier global contient aussi `"defaultMode": "bypassPermissions
 En fin d'init, afficher :
 1. Ce qui a été personnalisé (harnais retenu, fichier(s) de contexte, memory pré-remplie) + le harnais supprimé le cas échéant
 2. MCPs à installer (commandes exactes)
-3. Prochaine action recommandée (`/memory-update` pour valider l'état initial)
+3. Prochaine action recommandée (remplir `.mind/state.md` et `.mind/todo.md`)
 
 ---
 
 ## Règles d'exécution
 
-- Ne pas modifier les skills (`caveman/`, `caveman-compress/`, `memory-update.md`)
+- Ne pas modifier les skills livrés (`caveman/`, `publish-docs/`, `agentic-sync/`)
 - Ne pas modifier `settings.json`
 - Toujours confirmer la suppression du harnais non retenu (Phase 0) avant d'exécuter (liste des chemins + confirmation unique) ; ne jamais supprimer le harnais courant sans confirmation explicite
 - Si un fichier n'est pas lisible (Excel, PDF) et qu'aucun outil n'est disponible, le signaler et continuer

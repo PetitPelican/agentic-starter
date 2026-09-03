@@ -1,122 +1,187 @@
 ---
 name: agentic-sync
 description: >
-  Resynchronise un projet DÉJÀ agentic sur la dernière version d'agentic-starter :
-  met à jour les fichiers starter-owned (corps des skills, moteur du site), supprime
-  ce que le starter a retiré (agents/), applique les renommages, puis réconcilie à la
-  main les fichiers project-owned (CLAUDE.md/AGENTS.md, mémoire, site.config.yml).
-  Ne touche jamais au contenu de .memory/, _content/ ni aux secrets.
+  Resynchronise un projet DÉJÀ au harnais sur la dernière version du starter :
+  met à jour les fichiers starter-owned (corps des skills, hooks), supprime ce
+  que le starter a retiré, applique les renommages, puis réconcilie à la main
+  les fichiers project-owned (CLAUDE.md, câblage des hooks, mémoire,
+  site.config.yml). Ne touche jamais au contenu de .mind/, .memory/, _content/
+  ni aux secrets.
   Trigger: /agentic-sync ou "mets mon projet à jour avec le starter".
 ---
 
 # Agentic Sync
 
-> **Quand l'utiliser** : projet **déjà** agentic (a `.claude/skills/`, `.memory/`…) qu'on veut
-> remettre au niveau du starter courant. Différent d'`agentic-upgrade` (onboarding additif d'un
-> projet **sans** archi agentic) et de `project-init` (nouveau projet).
+> **Quand l'utiliser** : projet **déjà** au harnais (il a `.claude/skills/`,
+> `.mind/` ou `.memory/`) qu'on veut remettre au niveau du starter courant.
+> Différent d'`agentic-upgrade` (onboarding **additif** d'un projet **sans**
+> harnais) et de `project-init` (nouveau projet).
 
 ## Principe : ownership
 
-- **Starter-owned → mis à jour vers la dernière version** (le script s'en charge) : corps des
-  skills (`.claude/skills/**`, `.codex/skills/**`), suppression de ce qui a été retiré
-  (`.claude/agents/`, `.codex/agents/`), nettoyage des renommages (`agent-init`, `doc-site`…).
-  L'écrasement des skills est **voulu** : c'est le but du sync (récupérer la dernière logique).
-- **Project-owned → jamais écrasé** : `.memory/**` (contenu), `site/site.config.yml`,
-  `site/_content/**`, `.env*`, `.mcp.json`, `settings.local.json`.
-- **Zone grise → réconciliée à la main** (ci-dessous, étapes 3-5), jamais en écrasement aveugle :
-  section « Mémoire » + règles de `CLAUDE.md`/`AGENTS.md`, dérive de taxonomie mémoire, et le
-  **moteur de site** (`build_site.py`, `publish.py`, `.gitignore`, `_assets/reference.docx`) :
-  le script le **signale** s'il diffère mais ne l'écrase jamais — l'écraser seul casserait le build
-  tant que `site.config.yml` n'existe pas ; il se met à jour dans le bloc « site » (swap + config + vérif).
+- **Starter-owned → mis à jour vers la dernière version** (le script s'en
+  charge) : corps des skills (`.claude/skills/**`), scripts des hooks
+  (`.claude/hooks/**`), suppression de ce qui a été retiré en amont.
+  L'écrasement est **voulu** : c'est le but du sync, récupérer la dernière
+  logique.
+- **Project-owned → jamais écrasé** : `.mind/**` et `.memory/**` (contenu),
+  `.claude/settings.json` (permissions **et câblage** des hooks),
+  `site/site.config.yml`, `site/_content/**`, `.env*`, `.mcp.json`,
+  `settings.local.json`.
+- **Zone grise → réconciliée à la main** (étapes 3 à 5), jamais en écrasement
+  aveugle : section « Mémoire » et règles de `CLAUDE.md`, câblage des hooks,
+  dérive de taxonomie mémoire, et le **moteur de site** (`build_site.py`,
+  `publish.py`, `.gitignore`, `_assets/reference.docx`) — le script le
+  **signale** s'il diffère mais ne l'écrase jamais : l'écraser seul casserait le
+  build tant que `site.config.yml` n'existe pas.
 
-Toujours **dry-run → validation → apply**. Rien de destructif sur le contenu projet.
+Toujours **dry-run → validation → apply**. Rien de destructif sur le contenu
+projet.
 
 ## Procédure
 
-### 1. État git + sauvegarde mentale
+### 1. État git
+
 ```bash
 git status --short
 ```
-Travailler sur une branche dédiée si le projet est en prod (`git switch -c chore/agentic-sync`).
+
+Travailler sur une branche dédiée si le projet est en prod
+(`git switch -c chore/agentic-sync`).
 
 ### 2. Sync mécanique (script)
-Dry-run d'abord, depuis la racine du projet :
-```powershell
-.\.claude\skills\agentic-sync\scripts\agentic-sync.ps1
-```
-Si le projet n'a pas encore ce skill, lancer depuis un clone local du starter :
-```powershell
-<CHEMIN_AGENTIC_STARTER>\.claude\skills\agentic-sync\scripts\agentic-sync.ps1 -ProjectRoot <CHEMIN_PROJET>
-```
-Présenter le rapport (Changements / Ignorés / À réconcilier). Après accord :
-```powershell
-.\.claude\skills\agentic-sync\scripts\agentic-sync.ps1 -Apply
-```
-Le script mirror les skills (ajoute les nouveaux, met à jour les corps, supprime les fichiers
-retirés en amont), écrase le moteur de site **s'il existe déjà**, et supprime les chemins
-obsolètes/renommés. Il ne crée pas de `site/` là où il n'y en a pas (→ `/publish-docs init`).
 
-### 3. Réconcilier `CLAUDE.md` / `AGENTS.md` (guidé, pas d'écrasement)
-Comparer avec les gabarits du template **uniquement sur les sections structurelles**, sans toucher
-au rôle ni aux règles métier personnalisés du projet :
-- **Section « Mémoire projet »** : aligner sur la taxonomie courante (lecture systématique
-  `charter`/`rules`/`state`/`MEMORY.md` vs à la demande `architecture`/`decisions`/`operations` ;
-  `state.md` = snapshot borné).
-- **Règles** : si la règle git ou une règle générique a évolué dans le template, proposer le diff.
+Dry-run d'abord, depuis la racine du projet :
+
+```bash
+python3 .claude/skills/agentic-sync/scripts/agentic-sync.py
+```
+
+Sur Windows, l'interpréteur s'appelle `python`. Si le projet n'a pas encore ce
+skill, lancer depuis un clone local du starter :
+
+```bash
+python3 <CHEMIN_STARTER>/.claude/skills/agentic-sync/scripts/agentic-sync.py --project-root <CHEMIN_PROJET>
+```
+
+Présenter le rapport (Changements / À réconcilier à la main). Après accord :
+
+```bash
+python3 .claude/skills/agentic-sync/scripts/agentic-sync.py --apply
+```
+
+Le script met les skills et les hooks en miroir (ajoute les nouveaux, met à jour
+les corps, supprime ce qui a été retiré en amont), signale le moteur de site
+sans l'écraser, et supprime les chemins obsolètes ou renommés. Il ne crée pas de
+`site/` là où il n'y en a pas (→ `/publish-docs init`).
+
+### 3. Câbler les hooks — l'étape qu'on oublie
+
+Le script a mis à jour les **scripts** des hooks. Il n'a pas touché à
+`settings.json`, qui est project-owned : un hook fraîchement copié peut n'être
+branché nulle part. **Un hook qui ne démarre pas ne bloque rien et ne le dit
+pas** — c'est exactement ce qui est arrivé à `memory-guard`, déclaré `python` et
+silencieux pendant des mois sur une machine où seul `python3` existe.
+
+Vérifier que `settings.json` du projet déclare, comme celui du starter :
+
+- `mind-guard.py` en **`PreToolUse`** sur `Bash(git commit*)`
+- `journal.py` en **`PostToolUse`** sur `Bash(git commit*)`
+- chacun **deux fois**, une entrée `python` et une entrée `python3`, pour
+  couvrir Windows et macOS sans opérateur de shell.
+
+Un dépôt **multi-domaines** pose `mind-guard-relais.py` dans les
+sous-périmètres : il remonte à la racine par `git rev-parse`, sans compter les
+dossiers.
+
+### 4. Réconcilier `CLAUDE.md` (guidé, pas d'écrasement)
+
+Comparer avec le gabarit du template **uniquement sur les sections
+structurelles**, sans toucher au rôle ni aux règles métier du projet :
+
+- **Section « Mémoire projet »** : aligner sur les deux dossiers, deux natures —
+  `.mind/` = faits actuels, exactement cinq fichiers, le texte périmé s'y
+  **remplace** ; `.memory/` = traces datées, ça s'accumule. Et les deux hooks.
+- **Règles** : si une règle générique a évolué dans le template, proposer le
+  diff.
+
 Montrer chaque changement, appliquer après validation.
 
-### 4. Mémoire : proposer le CHOIX (rester ou migrer)
-Le script ne touche jamais `.memory/`. S'il détecte une taxonomie ancienne (fichiers comme
-`business.md`, `clients.md`, `overview.md`, `hosting.md`, `todo.md`, `troubleshooting.md`…), il le
-**signale** dans le rapport. **Poser explicitement le choix à l'utilisateur, ne rien migrer d'office** :
+### 5. Mémoire : proposer le CHOIX, ne rien migrer d'office
 
-- **(A) Garder la taxonomie mémoire actuelle.** Rien n'est modifié. Valable si le projet n'a pas de
-  site, ou si tu préfères ta structure. Limite : `/publish-docs refresh` mappe alors depuis les
-  fichiers existants, de façon moins nette (la frontière public/privé n'est pas garantie).
-- **(B) Migrer vers la nouvelle taxonomie** (`charter/architecture/rules/decisions/state` +
-  `operations` privé) — celle qui s'accorde avec le site (sections + pare-feu public/privé).
+Le script ne touche jamais au contenu. S'il détecte une taxonomie d'avant le
+02/09/2026 — `state.md`, `rules.md` ou `architecture.md` encore dans `.memory/`,
+un `charter.md`, un `business.md` — il le **signale**. Poser le choix :
 
-Ne procéder à la migration **que si l'utilisateur choisit (B)**. Migration = **non destructive** :
-copier le contenu vers les nouveaux fichiers, faire relire, puis supprimer les anciens seulement
-après validation explicite. Mapping :
+- **(A) Garder la taxonomie actuelle.** Rien n'est modifié. Limite, et elle est
+  concrète : le tableau de bord lit `.mind/state.md` et `.mind/todo.md`. Sans
+  eux, **le projet n'apparaît pas** — pas en erreur, absent.
+- **(B) Migrer.** C'est un **TRI**, pas une création : les fichiers de faits
+  actuels **montent** dans `.mind/`, les traces datées **restent** dans
+  `.memory/`.
 
-| Ancien | → Nouveau |
+Ne migrer **que si l'utilisateur choisit (B)**, et de façon **non destructive** :
+copier vers la nouvelle place, faire relire, supprimer les originaux seulement
+après validation explicite.
+
+| Ancien | → |
 |---|---|
-| `business.md` (qui/pourquoi/rôles) | `charter.md` |
-| `business.md` (règles/contraintes) | `rules.md` |
-| `clients.md` / `overview.md` | fondu dans `charter.md`, puis supprimer |
-| `hosting.md`, secrets, dépannage, `troubleshooting.md` | `operations.md` (🔒 privé) |
-| `data-model.md` | garder si data-lourd, sinon fondre dans `architecture.md` |
-| `todo.md` | fondu dans `state.md` (snapshot) ; le reste part en `decisions.md` |
-| `state.md`, `decisions.md`, `architecture.md` | inchangés |
+| `.memory/state.md`, `rules.md`, `architecture.md` | **montent** dans `.mind/` |
+| `business.md` (règles, contraintes) | `.mind/rules.md` |
+| `business.md` (domaine, frontières, rôles) | `.mind/architecture.md` |
+| `business.md` (stack, outils, environnements) | `.mind/stack.md` |
+| `charter.md` | se **dissout** : but → champ `cap:` de `.mind/state.md`, rôle → `CLAUDE.md`, frontières → `.mind/architecture.md` |
+| `clients.md`, `overview.md` | se dissolvent ; le contractuel et le nominatif vont dans `.memory/operations.md` (🔒) |
+| `hosting.md`, `troubleshooting.md`, secrets | `.memory/operations.md` (🔒 privé) |
+| `todo.md` | `.mind/todo.md`, au dialecte du tableau de bord (`[ ]`/`[>]`/`[x]`, `!haut`, `@<qui>`) |
+| `data-model.md` | garder si data-lourd, sinon fondre dans `.mind/architecture.md` |
+| `decisions.md` | **reste** dans `.memory/` — c'est daté |
 
-**Multi-domaine** (ex. `.memory/<domaine>/…`) : appliquer la taxonomie **par domaine**
-(`<domaine>/{charter,architecture,rules,decisions,state}.md`) + un niveau transverse
-`.memory/_global/{charter,operations}.md`. Les fichiers très spécifiques (ingestion, lineage,
-config d'orchestration, mesures BI…) restent comme sections d'`architecture.md` du domaine ou,
-si opérationnels/sensibles, dans `operations.md`. Rien n'est supprimé sans validation explicite.
+Le test qui tranche : une phrase qui commence par « on a décidé de », ou qui
+porte une date au passé, va dans `.memory/`. Le reste va dans `.mind/`.
+**Jamais un sixième fichier dans `.mind/`.**
 
-Mettre à jour `MEMORY.md` (pointeurs), puis `/memory-update` pour compresser.
+**Multi-domaine** : `.mind/` reste **à la racine du dépôt**, jamais à un niveau
+intermédiaire — c'est ce que lit le tableau de bord, et il n'en cherche qu'un.
+Les sous-périmètres portent leur `CLAUDE.md` et leur `.memory/` ; leur état
+remonte dans le `.mind/state.md` de la racine.
 
-### 5. Site : hardcodé → config-driven (si applicable)
-Si le projet a un `site/` **sans** `site.config.yml`, le moteur vient d'être écrasé par la version
-config-driven (étape 2). Générer la config manquante :
-- créer `site/site.config.yml` (`title`, `tagline`, `logo_letter`, `preset`, `deploy`) ;
-- vérifier que `_content/` et les `_diagrams/` sont en place ;
-- `python site/publish.py --no-deploy` doit reproduire le site sans perte (HTML + Word/PDF).
-Sinon (`site/` absent) : `/publish-docs init` pour le créer, ou ne rien faire.
+Finir en vérifiant que `.mind/state.md` porte un en-tête complet (`maj`, `cap`,
+`sante`, `jalon`, avec `maj` à la date du jour) et que `.memory/MEMORY.md`
+pointe la bonne liste.
 
-### 6. Contrôles
+### 6. Site : hardcodé → config-driven (si applicable)
+
+Si le projet a un `site/` **sans** `site.config.yml`, le moteur a été signalé
+comme divergent à l'étape 2. Le migrer dans ce bloc : swap du moteur, puis
+créer `site/site.config.yml` (`title`, `tagline`, `logo_letter`, `preset`,
+`deploy`), vérifier `_content/` et les `_diagrams/`, et exiger que
+`python site/publish.py --no-deploy` reproduise le site sans perte.
+Si `site/` est absent : `/publish-docs init`, ou ne rien faire.
+
+### 7. Contrôles
+
 ```bash
-# plus aucune référence aux éléments retirés / anciens noms
-rg --hidden -n -i "\.claude/agents|\.codex/agents|agent-init|doc-site|project-upgrade" --glob "!.git/**"
+# plus aucune référence aux éléments retirés ou aux anciens noms
+rg --hidden -n -i "\.claude/agents|\.codex|AGENTS\.md|agent-init|doc-site|project-upgrade|memory-guard|memory-update" --glob '!.git/**'
 # secrets : la mémoire publique et _content ne fuitent rien
-rg -n -iE "(BEGIN PRIVATE|AccountKey|SAS=|[0-9]{1,3}(\.[0-9]{1,3}){3})" .memory site/_content 2>/dev/null
+rg -n -iE "(BEGIN PRIVATE|AccountKey|SAS=|[0-9]{1,3}(\.[0-9]{1,3}){3})" .mind .memory site/_content 2>/dev/null
 ```
 
+Puis un contrôle qui vaut mieux qu'une lecture : faire un commit de test et
+vérifier que `mind-guard` réagit, et que `.logs/<jour>.md` s'écrit. Un hook
+qu'on n'a pas vu se déclencher n'est pas un hook vérifié.
+
 ## Règles
-- Ne jamais écraser `.memory/**`, `site/_content/**`, `site/site.config.yml`, `.env*` ni les settings locaux.
-- Ne jamais supprimer de contenu mémoire sans confirmation explicite (migration = copie puis retrait validé).
-- Répercuter tout changement de skill à l'identique dans `.claude/` **et** `.codex/`.
-- Rapporter fichiers synchronisés / supprimés / à réconcilier ; garder la trace en dry-run avant apply.
-- Projet en prod : brancher (`git switch -c`), un commit par bloc (mécanique, mémoire, site).
+
+- Ne jamais écraser `.mind/**`, `.memory/**`, `site/_content/**`,
+  `site/site.config.yml`, `.env*`, `settings.json` ni les settings locaux.
+- Ne jamais supprimer de contenu mémoire sans confirmation explicite : migration
+  = copie, relecture, puis retrait validé.
+- Un seul harnais, `.claude/`, et un seul assistant. Un dépôt qui porte encore
+  `.codex/`, un `AGENTS.md` ou un `memory-guard.py` est en retard : le script
+  les supprime, ne jamais les recréer.
+- Rapporter ce qui a été synchronisé, supprimé, et ce qui reste à réconcilier.
+  Ne rien voir n'est pas un succès, c'est une absence de mesure.
+- Projet en prod : brancher (`git switch -c`), un commit par bloc — mécanique,
+  hooks, mémoire, site.
