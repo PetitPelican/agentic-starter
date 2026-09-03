@@ -133,9 +133,19 @@ def main():
             subprocess.run(["git", "init", "-q", str(cto)], check=False)
 
     rap.main_humaine(
-        "CÂBLAGE : vérifier que settings.json du CTO déclare mind-guard "
-        "(PreToolUse) et journal (PostToolUse), chacun DEUX fois — `python` et "
-        "`python3`. Le harnais copie les hooks, il ne touche pas au câblage.")
+        "CÂBLAGE : sur un dossier NEUF, settings.json arrive du starter déjà "
+        "câblé — 12 entrées : briefing (SessionStart + UserPromptSubmit), "
+        "mind-guard (PreToolUse) et journal (PostToolUse), chacun DEUX fois, "
+        "`python` et `python3`, parce que l'interpréteur n'a pas le même nom "
+        "selon l'OS. Ce n'est QUE si un settings.json existait déjà qu'il faut "
+        "vérifier à la main : le harnais ne l'écrase jamais.")
+    rap.main_humaine(
+        "REMPLIR .mind/ : les cinq fichiers arrivent en GABARIT, avec "
+        "`maj: YYYY-MM-DD` et des [PLACEHOLDERS]. Tant qu'ils ne sont pas "
+        "remplis, le briefing annonce « EN-TÊTE ILLISIBLE » et mind-guard "
+        "REFUSE le premier commit. C'est voulu — un harnais neuf ne laisse pas "
+        "démarrer sur une mémoire vide — mais il faut le savoir avant de croire "
+        "à une panne.")
     rap.main_humaine(
         "PREUVE : faire un commit d'essai de code sans toucher .mind/, et voir "
         "mind-guard refuser ; puis vérifier que .logs/<jour>.md s'écrit. Un hook "
