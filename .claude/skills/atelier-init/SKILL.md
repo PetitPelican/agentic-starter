@@ -37,14 +37,14 @@ description: >
 | **Méthode** | **`<racine>/CLAUDE.md`** | mémoire, hooks, skills, frontières | **oui — c'est l'artefact** |
 | Projet | `<projet>/CLAUDE.md` | rôle, stack, règles métier | non — propre au projet |
 
-**Le socle ne « prévaut » pas sur les `CLAUDE.md` de projet.** Les deux sont
+**Le foundation ne « prévaut » pas sur les `CLAUDE.md` de projet.** Les deux sont
 lus, et le plus spécifique l'emporte en cas de conflit — vérifié par commande :
 un agent dans `parent/enfant` lit les deux fichiers, un agent dans `parent` ne
-lit jamais celui de l'enfant. Le socle porte donc l'**invariant**, le projet
+lit jamais celui de l'enfant. Le foundation porte donc l'**invariant**, le projet
 ajoute ses spécificités. Chercher à écraser depuis le parent produit deux textes
 qui se contredisent, et c'est le plus précis qui gagne de toute façon.
 
-Corollaire : **ne jamais mettre le rôle du CTO dans le socle.** Il serait hérité
+Corollaire : **ne jamais mettre le rôle du CTO dans le foundation.** Il serait hérité
 par tous les chefs de projet, qui se croiraient CTO — et la frontière « un
 projet appartient à son agent » leur interdirait alors de modifier leur propre
 projet.
@@ -74,7 +74,7 @@ créé, ce qui existe déjà (jamais écrasé), et ce qui restera à faire à la
 **3. Appliquer** après lecture du rapport : ajouter `--apply`.
 
 **4. Ouvrir le CTO** dans son dossier — c'est ce qui lui donne son `CLAUDE.md`
-et le socle hérité :
+et le foundation hérité :
 
 ```bash
 cd ~/Agentic/cto && claude
@@ -96,10 +96,10 @@ ne bloque rien et ne le dit pas.**
 `mind-guard` refuser, puis vérifier que `.logs/<jour>.md` s'écrit. Un hook qu'on
 n'a pas vu se déclencher n'est pas un hook vérifié.
 
-**Le contenu du socle.** Le template porte la méthode générique. Ce qui est propre
+**Le contenu du foundation.** Le template porte la méthode générique. Ce qui est propre
 à la **machine** — comptes, sessions, réseau, contraintes mémoire — n'y va pas :
 il va dans `~/.claude/CLAUDE.md`. Mélanger les deux, c'est perdre la portabilité
-du socle au premier changement de poste.
+du foundation au premier changement de poste.
 
 ## Ensuite
 
@@ -119,7 +119,7 @@ demande de lire le contenu, et le contenu appartient au projet.
 
 - **Rien n'est jamais écrasé.** Un `CLAUDE.md` déjà présent à la racine ou chez
   le CTO est conservé et signalé.
-- **Ne pas mettre le rôle dans le socle**, ni la méthode dans le rôle.
+- **Ne pas mettre le rôle dans le foundation**, ni la méthode dans le rôle.
 - **Ne pas monter de projet avec ce skill** : il monte l'atelier, une seule fois.
 - **`git init` n'est pas cosmétique** : les deux hooks se déclenchent au commit.
   Un dossier sans dépôt porte un harnais inerte, silencieusement.

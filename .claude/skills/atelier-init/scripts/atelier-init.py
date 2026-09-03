@@ -9,11 +9,11 @@ Le starter sait monter **un projet**. Ce script monte ce qui l'entoure :
 
 C'est cette couche du milieu qui **se transporte**. La couche du poste
 (`~/.claude/CLAUDE.md` : comptes, sessions, réseau) se refait sur chaque machine,
-et la couche projet est propre à chaque projet. Le socle, lui, part tel quel.
+et la couche projet est propre à chaque projet. Le foundation, lui, part tel quel.
 
-POURQUOI LE SOCLE NE « PRÉVAUT » PAS. Un `CLAUDE.md` parent n'écrase pas celui
+POURQUOI LE FOUNDATION NE « PRÉVAUT » PAS. Un `CLAUDE.md` parent n'écrase pas celui
 d'un projet : les deux sont lus, et le plus spécifique l'emporte en cas de
-conflit. Le socle porte donc l'**invariant** — mémoire, hooks, skills,
+conflit. Le foundation porte donc l'**invariant** — mémoire, hooks, skills,
 frontières — et le projet ajoute son rôle et ses règles métier par-dessus.
 Chercher à écraser depuis le parent produit deux textes qui se contredisent.
 
@@ -93,7 +93,7 @@ def main():
             racine.mkdir(parents=True)
 
     # 1. La MÉTHODE, à la racine. C'est l'artefact portable.
-    pose(TEMPLATES / "socle-CLAUDE.md", racine / "CLAUDE.md", rap, a.apply)
+    pose(TEMPLATES / "foundation-CLAUDE.md", racine / "CLAUDE.md", rap, a.apply)
 
     # 2. Le poste du CTO. Son rôle seulement — la méthode, il l'hérite.
     qui = a.utilisateur.strip() or "l'utilisateur"
@@ -151,7 +151,7 @@ def main():
         "mind-guard refuser ; puis vérifier que .logs/<jour>.md s'écrit. Un hook "
         "qu'on n'a pas vu se déclencher n'est pas un hook vérifié.")
     rap.main_humaine(
-        "SOCLE : le CLAUDE.md de la racine ne porte QUE la méthode. Le poste "
+        "FOUNDATION : le CLAUDE.md de la racine ne porte QUE la méthode. Le poste "
         "(comptes, sessions, réseau, RAM) va dans ~/.claude/CLAUDE.md ; le rôle "
         "et les règles métier vont dans le CLAUDE.md de chaque projet.")
     rap.main_humaine(

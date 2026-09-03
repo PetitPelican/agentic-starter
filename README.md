@@ -20,11 +20,11 @@ premier.
 
 | Fichier | Ce qu'il contient | Pour qui |
 |---|---|---|
-| **[`templates/socle-CLAUDE.md`](.claude/skills/atelier-init/templates/socle-CLAUDE.md)** | **LA MÉTHODE, en entier** — mémoire, hooks, skills, délégation, frontières, réflexes | l'agent, et le lecteur |
+| **[`templates/foundation-CLAUDE.md`](.claude/skills/atelier-init/templates/foundation-CLAUDE.md)** | **LA MÉTHODE, en entier** — mémoire, hooks, skills, délégation, frontières, réflexes | l'agent, et le lecteur |
 | ce `README.md` | comment **installer**, et ce que le dépôt **contient** | le lecteur, à l'arrivée |
 | `.claude/skills/*/SKILL.md` | le mode d'emploi détaillé d'**un** outil | l'agent, quand il le lance |
 
-Le template du socle n'est pas un document interne : c'est **le fichier qui est
+Le template du foundation n'est pas un document interne : c'est **le fichier qui est
 copié** en `~/Agentic/CLAUDE.md` par `/atelier-init`, et que tout agent ouvert
 dans un sous-dossier lit ensuite à chaque session. Le lire, c'est lire ce que
 les agents lisent. Il n'y a pas de version « pour humains » à côté, et c'est
@@ -54,7 +54,7 @@ lu par un humain. Autant s'en servir.
 
 **Où ouvrir la session — c'est le seul piège de toute la procédure.** Créer
 `~/Agentic`, et y ouvrir l'agent **là** ; pas dans `~/Agentic/cto`, qui n'existe
-pas encore et que le script crée lui-même. Le socle va **un niveau au-dessus**
+pas encore et que le script crée lui-même. Le foundation va **un niveau au-dessus**
 du dossier du CTO : posé à l'intérieur, il ne serait lu que par le CTO et
 **aucun projet n'en hériterait**. Aucune erreur ne le signalerait, la méthode
 serait simplement sans effet.
@@ -87,7 +87,7 @@ les projets un par un.
 
 Le prompt **pointe le `SKILL.md`** au lieu de recopier ses étapes. Une copie se
 périmerait le jour où le skill change, et personne ne le verrait — c'est la même
-raison qui fait qu'il n'existe pas de version « pour humains » du socle.
+raison qui fait qu'il n'existe pas de version « pour humains » du foundation.
 
 > **Le nom du dossier est une adresse.** `cto` en minuscules, décidé une fois
 > pour toutes : la mémoire auto de Claude Code est indexée par le **chemin de
@@ -122,7 +122,7 @@ Trois couches, une seule voyage :
 | **Méthode** | **`~/Agentic/CLAUDE.md`** — mémoire, hooks, skills, frontières | **oui** |
 | Projet | `<projet>/CLAUDE.md` — rôle, stack, règles métier | non, propre au projet |
 
-Le socle ne « prévaut » pas sur les `CLAUDE.md` de projet : les deux sont lus, et
+Le foundation ne « prévaut » pas sur les `CLAUDE.md` de projet : les deux sont lus, et
 le plus spécifique l'emporte. Il porte donc l'invariant, pas des surcharges.
 Détail dans `/atelier-init`.
 
@@ -201,7 +201,7 @@ et signale tout conflit sans rien écraser.
 
 ### Skills
 
-- `atelier-init` — monte l'**atelier** sur une machine neuve : le socle de méthode
+- `atelier-init` — monte l'**atelier** sur une machine neuve : le foundation de méthode
   et le poste du CTO. Une fois par machine, avant tout projet.
 - `project-init` — initialise un **nouveau** projet
 - `agentic-upgrade` — onboarde un projet existant **sans** harnais (additif)
@@ -228,7 +228,7 @@ périmer.
 Sur `UserPromptSubmit` il est **silencieux** tant que rien n'a bougé — coût nul
 en régime établi, et il peut donc se poser sur une session **déjà ouverte**.
 *Pourquoi un pointeur dans `CLAUDE.md` ne suffisait pas, et la mesure qui l'a
-montré : voir le socle, « Les trois hooks ».*
+montré : voir le foundation, « Les trois hooks ».*
 
 **`mind-guard`** — `PreToolUse` sur `git commit`. Refuse un commit de **code
 projet** qui laisserait `.mind/state.md` ou `.mind/todo.md` en arrière, et

@@ -5,7 +5,7 @@ Ce fichier est lu par **tout agent ouvert dans un sous-dossier**. Il porte la
 n'importe quelle machine.
 
 Il ne prévaut pas sur le `CLAUDE.md` d'un projet — les deux sont lus, et le plus
-spécifique l'emporte. Le socle dit **comment on travaille** ; le projet dit **sur
+spécifique l'emporte. Le foundation dit **comment on travaille** ; le projet dit **sur
 quoi**. Ne jamais dupliquer l'un dans l'autre.
 
 Trois couches, à ne pas mélanger :

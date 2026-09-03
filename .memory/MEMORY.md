@@ -72,7 +72,7 @@ seule date est le champ `maj:` de `state.md`, qui existe pour la machine.
 
 <!-- Multi-domaine (plusieurs sous-projets dans un même dépôt) : chaque domaine
      porte son propre couple `.mind/` + `.memory/`, et un `CLAUDE.md` de racine
-     porte le socle commun — il est hérité par tous les sous-dossiers, à
+     porte le foundation commun — il est hérité par tous les sous-dossiers, à
      n'importe quelle profondeur. Ne PAS créer de `.mind/` au niveau de la
      racine : aucun agent n'y tourne pour le tenir, et un état consolidé que
      personne ne maintient pourrit en silence. -->
