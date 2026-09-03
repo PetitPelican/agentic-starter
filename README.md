@@ -15,13 +15,13 @@ relève de l'exploitation d'une machine n'y est pas.
 
 ## Où la méthode est écrite
 
-Trois fichiers, et un seul est la référence. Si tu ne dois en lire qu'un, c'est
-le premier.
+Trois fichiers, et un seul est la référence. À n'en lire qu'un, c'est le
+premier.
 
 | Fichier | Ce qu'il contient | Pour qui |
 |---|---|---|
-| **[`gabarits/socle-CLAUDE.md`](.claude/skills/atelier-init/gabarits/socle-CLAUDE.md)** | **LA MÉTHODE, en entier** — mémoire, hooks, skills, délégation, frontières, réflexes | l'agent, et toi |
-| ce `README.md` | comment **installer**, et ce que le dépôt **contient** | toi, à l'arrivée |
+| **[`gabarits/socle-CLAUDE.md`](.claude/skills/atelier-init/gabarits/socle-CLAUDE.md)** | **LA MÉTHODE, en entier** — mémoire, hooks, skills, délégation, frontières, réflexes | l'agent, et le lecteur |
+| ce `README.md` | comment **installer**, et ce que le dépôt **contient** | le lecteur, à l'arrivée |
 | `.claude/skills/*/SKILL.md` | le mode d'emploi détaillé d'**un** outil | l'agent, quand il le lance |
 
 Le gabarit du socle n'est pas un document interne : c'est **le fichier qui est
@@ -52,14 +52,14 @@ on monte l'**atelier** : la couche au-dessus.
 Le `SKILL.md` d'`atelier-init` est **écrit pour être suivi par un agent**, pas
 lu par un humain. Autant s'en servir.
 
-**Où ouvrir la session, et c'est le seul piège de toute la procédure.** Crée
-`~/Agentic`, et ouvre l'agent **là** — pas dans `~/Agentic/cto`, qui n'existe
+**Où ouvrir la session — c'est le seul piège de toute la procédure.** Créer
+`~/Agentic`, et y ouvrir l'agent **là** ; pas dans `~/Agentic/cto`, qui n'existe
 pas encore et que le script crée lui-même. Le socle va **un niveau au-dessus**
 du dossier du CTO : posé à l'intérieur, il ne serait lu que par le CTO et
 **aucun projet n'en hériterait**. Aucune erreur ne le signalerait, la méthode
 serait simplement sans effet.
 
-Puis colle ceci :
+Puis coller ceci :
 
 ```text
 Monte l'atelier agentique sur cette machine.
@@ -68,7 +68,7 @@ Monte l'atelier agentique sur cette machine.
    git clone https://github.com/PetitPelican/claude-starter.git /tmp/claude-starter
 
 2. Lis /tmp/claude-starter/.claude/skills/atelier-init/SKILL.md et suis-le.
-   Racine = ce dossier, CTO = `cto` en minuscules, utilisateur = <TonPrénom>.
+   Racine = ce dossier, CTO = `cto` en minuscules, utilisateur = <prénom>.
 
 3. Lance le script en DRY-RUN d'abord et montre-moi le rapport.
    N'applique rien avant que je te le dise.
@@ -94,12 +94,12 @@ raison qui fait qu'il n'existe pas de version « pour humains » du socle.
 > travail**. Renommer le dossier plus tard l'orpheline en entier, transcripts
 > compris, **sans afficher la moindre erreur**.
 
-### À la main, si tu préfères
+### À la main
 
 ```bash
 git clone https://github.com/PetitPelican/claude-starter.git /tmp/claude-starter
 python3 /tmp/claude-starter/.claude/skills/atelier-init/scripts/atelier-init.py \
-        --racine ~/Agentic --cto cto --utilisateur <TonPrénom>
+        --racine ~/Agentic --cto cto --utilisateur <prénom>
 # lire le rapport, puis relancer avec --apply
 ```
 
@@ -130,7 +130,7 @@ Détail dans `/atelier-init`.
 
 ## Quickstart
 
-**1. Cloner dans ton projet**
+**1. Cloner dans le projet**
 
 ```bash
 git clone https://github.com/PetitPelican/claude-starter.git .
@@ -159,11 +159,11 @@ qui laisserait `.mind/` en arrière, et `journal` écrit `.logs/<jour>.md`.
 
 ## Projet existant
 
-Ton projet a déjà du code ? N'utilise pas `/project-init`, réservé à un nouveau
-projet. Le skill dédié est **`/agentic-upgrade`**, purement **additif**
+Un projet qui porte déjà du code ne passe pas par `/project-init`, réservé à un
+projet neuf. Le skill dédié est **`/agentic-upgrade`**, purement **additif**
 (*copy-if-missing*, aucun écrasement).
 
-Comme le skill vit dans `.claude/`, amorce d'abord le harnais :
+Le skill vivant dans `.claude/`, il faut amorcer le harnais d'abord :
 
 ```bash
 # macOS / Linux
@@ -370,7 +370,7 @@ Ce qui appartient au projet, en revanche, est **`.rtk/filters.toml`** : les
 filtres propres à ce dépôt, commités, qui surchargent les filtres globaux. Le
 starter le fournit, commenté. Sans RTK installé il est inerte.
 
-> N'écris pas de filtres à l'avance. Laisse tourner, puis `rtk gain` dit
+> Ne pas écrire de filtres à l'avance. Laisser tourner, puis `rtk gain` dit
 > **quelles** commandes coûtent vraiment. Un filtre écrit d'avance compresse du
 > bruit imaginaire.
 
