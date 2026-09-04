@@ -140,7 +140,7 @@ def main():
         "selon l'OS. Ce n'est QUE si un settings.json existait déjà qu'il faut "
         "vérifier à la main : le harnais ne l'écrase jamais.")
     rap.main_humaine(
-        "REMPLIR .mind/ : les cinq fichiers arrivent en TEMPLATE, avec "
+        "REMPLIR .fact/ et .mind/ : les six fichiers arrivent en TEMPLATE, avec "
         "`maj: YYYY-MM-DD` et des [PLACEHOLDERS]. Tant qu'ils ne sont pas "
         "remplis, le briefing annonce « EN-TÊTE ILLISIBLE » et mind-guard "
         "REFUSE le premier commit. C'est voulu — un harnais neuf ne laisse pas "
@@ -180,7 +180,7 @@ def main():
 %s
   L'ATELIER EST EN PLACE. CETTE SESSION N'A PLUS D'OBJET.
 
-  Avant de la fermer, remplir `%s/.mind/state.md` et `todo.md` :
+  Avant de la fermer, remplir `%s/.fact/base.md`, `.mind/state.md` et `todo.md` :
   cette session est la seule à savoir ce qui vient d'être monté.
 
   Puis OUVRIR UNE NOUVELLE SESSION DANS :

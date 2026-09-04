@@ -12,8 +12,10 @@
       "Bash(git commit*)",
       "Bash(git push*)",
       "Bash(rtk git commit*)",
-      "Bash(rtk git push*)"
-    ]
+      "Bash(rtk git push*)",
+      "Edit(~/Agentic/<Projet>/agents/<autre-agent>/**)"
+    ],
+    "_note_perimetre": "Le périmètre d'un agent s'écrit ICI, en `deny`, et NULLE PART AILLEURS — une consigne en prose dans son CLAUDE.md n'empêche rien. Trois faits mesurés le 04/09/2026, à ne pas redécouvrir : (1) seules les règles `Edit(...)` sont évaluées, `Write(...)` est inerte et provoque un avertissement au démarrage ; (2) un motif RELATIF (`Edit(../autre/**)`) ne mord pas — vérifié, le fichier a été modifié malgré la règle ; (3) un motif ancré sur le home (`Edit(~/Agentic/<Projet>/agents/<autre>/**)`) mord, y compris hors du dossier courant et en mode bypassPermissions. Écrire donc TOUJOURS des chemins `~/`-ancrés, jamais de `../`."
   },
   "hooks": {
     "SessionStart": [
@@ -21,13 +23,13 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python .claude/hooks/briefing.py",
+            "command": "python ../../.claude/hooks/briefing.py",
             "timeout": 15,
             "statusMessage": "briefing (.mind) [python]"
           },
           {
             "type": "command",
-            "command": "python3 .claude/hooks/briefing.py",
+            "command": "python3 ../../.claude/hooks/briefing.py",
             "timeout": 15,
             "statusMessage": "briefing (.mind) [python3]"
           }
@@ -39,13 +41,13 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python .claude/hooks/briefing.py",
+            "command": "python ../../.claude/hooks/briefing.py",
             "timeout": 15,
             "statusMessage": "briefing si .mind a changé [python]"
           },
           {
             "type": "command",
-            "command": "python3 .claude/hooks/briefing.py",
+            "command": "python3 ../../.claude/hooks/briefing.py",
             "timeout": 15,
             "statusMessage": "briefing si .mind a changé [python3]"
           }
@@ -58,13 +60,13 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python .claude/hooks/mind-guard.py",
+            "command": "python ../../.claude/hooks/mind-guard.py",
             "timeout": 20,
             "statusMessage": "mind-guard (le script filtre lui-même) [python]"
           },
           {
             "type": "command",
-            "command": "python3 .claude/hooks/mind-guard.py",
+            "command": "python3 ../../.claude/hooks/mind-guard.py",
             "timeout": 20,
             "statusMessage": "mind-guard (le script filtre lui-même) [python3]"
           }
@@ -77,13 +79,13 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python .claude/hooks/journal.py",
+            "command": "python ../../.claude/hooks/journal.py",
             "timeout": 20,
             "statusMessage": "journal (le script filtre lui-même) [python]"
           },
           {
             "type": "command",
-            "command": "python3 .claude/hooks/journal.py",
+            "command": "python3 ../../.claude/hooks/journal.py",
             "timeout": 20,
             "statusMessage": "journal (le script filtre lui-même) [python3]"
           }

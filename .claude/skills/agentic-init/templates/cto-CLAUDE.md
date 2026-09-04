@@ -17,7 +17,7 @@ reviennent, et **tu y codes**.
 
 Les **projets** appartiennent à leur chef de projet : **lecture seule**, sauf
 autorisation explicite de [UTILISATEUR], demandée au cas par cas et tracée dans
-`.memory/decisions.md`.
+`docs/decisions.md`.
 
 La raison n'est pas le titre, elle est la **propriété** : deux agents qui
 écrivent dans le même `.mind/` produisent des conflits silencieux. La règle vaut
@@ -32,7 +32,7 @@ son tour. Rendre trois colonnes : ce qui avance, ce qui bloque, **ce qui attend
 déléguer.
 
 **2. Monter un projet neuf.** Cloner le starter dans le dossier du projet, puis
-`/project-init`. Le harnais arrive avec : les cinq `.mind/`, les `.memory/`, les
+`/project-init`. Le harnais arrive avec : les quatre `.fact/`, les deux `.mind/`, les `docs/`, les
 deux hooks, les skills.
 
 **3. Onboarder un projet existant.** `/agentic-upgrade` — purement additif,

@@ -8,7 +8,7 @@ inutile qu'un projet sans mémoire.
 
 LA PANNE QU'IL CORRIGE, mesurée le 03/09/2026. Interrogé sur les outils
 auxquels il avait accès, un agent a répondu de travers alors que la réponse
-tenait dans son `.mind/stack.md` — 173 lignes, à jour du jour même. Il n'avait
+tenait dans son `.fact/stack.md` — 173 lignes, à jour du jour même. Il n'avait
 pas négligé de lire : **rien dans son contexte de démarrage ne nommait ce
 fichier**. Son `CLAUDE.md` faisait une ligne. Sur huit projets de l'atelier,
 sept nommaient `.mind/` et un seul ne le faisait pas : c'était celui-là.
@@ -41,14 +41,37 @@ refus. Un injecteur, lui, injecterait **deux fois** sur une machine où les deux
 interpréteurs répondent. D'où le verrou atomique : le premier des deux prend le
 tour, l'autre se tait.
 
-**fail-open** : toute erreur, tout fichier absent, tout dépôt sans `.mind/`
-laisse passer sans rien injecter. Un briefing n'a jamais à empêcher un tour de
-parole.
+DEUX ÉTAGES DEPUIS LE 04/09/2026. Le hook fait **deux remontées
+indépendantes** : le `.mind/` le plus proche est l'état de l'agent qui parle,
+le `.fact/` le plus proche est son projet. En mono c'est le même dossier ; en
+multi-agents, l'agent vit dans `<projet>/agents/<nom>/` et le `.fact/` est deux
+étages plus haut. C'est pour ça que les deux dossiers ne portent pas le même
+nom : une remontée s'arrête au premier dossier trouvé, et deux étages homonymes
+empêcheraient l'agent de voir jamais l'architecture de son projet.
+
+LA SEULE FOIS OÙ IL PARLE SANS ÉTAT. Un `.fact/` trouvé **sans** `.mind/`
+signifie qu'on est à la racine d'un projet multi-agents, là où personne ne
+travaille — l'erreur la plus probable de cette architecture. Se taire y
+produirait exactement la sortie d'un projet en bonne santé, donc il avertit et
+nomme les agents disponibles.
+
+**fail-open** : toute erreur, tout fichier absent, tout dépôt sans `.mind/` NI
+`.fact/` laisse passer sans rien injecter. Un briefing n'a jamais à empêcher un
+tour de parole.
 """
 import datetime, errno, json, os, pathlib, re, sys, time
 
 FENETRE_VERROU = 5          # s — au-delà, un verrou est considéré abandonné
-MIND = ("state.md", "todo.md", "stack.md", "architecture.md", "rules.md")
+# Deux étages depuis le 04/09/2026. `.fact/` : ce qu'un seul écrivain tient
+# pour tout le projet, fermé à quatre fichiers. `.mind/` : ce que chaque agent
+# tient seul. Les noms DOIVENT différer : la remontée s'arrête au premier
+# dossier trouvé, et deux étages homonymes empêcheraient un agent de
+# `agents/<nom>/` de voir jamais l'architecture de son projet.
+MIND = ("state.md", "todo.md")
+FACT = ("base.md", "architecture.md", "stack.md", "rules.md")
+# Avant migration, les cinq fichiers vivent dans `.mind/`. Le briefing lit les
+# deux formes : un projet non migré ne doit rien perdre.
+MIND_ANCIEN = ("state.md", "todo.md", "stack.md", "architecture.md", "rules.md")
 CHAMPS = ("maj", "cap", "sante", "jalon")
 ENTETE = re.compile(r"\s*---\s*\n(.*?)\n---\s*(\n|$)", re.S)
 TACHE = re.compile(r"^\s*[-*]\s*\[( |x|X|>|~)\]\s+(.+?)\s*$")
@@ -73,32 +96,38 @@ def lis(p):
         return ""
 
 
-def _remonte(depart):
-    """Le premier ancêtre qui porte un `.mind/`, `depart` compris."""
+def _remonte(depart, marqueur):
+    """Le premier ancêtre qui porte `marqueur`, `depart` compris."""
     try:
         p = pathlib.Path(depart).resolve()
     except (OSError, ValueError):
         return None
     while True:
-        if (p / ".mind").is_dir():
+        if (p / marqueur).is_dir():
             return p
         if p.parent == p:
             return None
         p = p.parent
 
 
-def racine(charge):
-    """Le dossier du projet.
+def racines(charge):
+    """**Deux remontées indépendantes** — le coeur du dispositif multi-agents.
 
-    `CLAUDE_PROJECT_DIR` fait AUTORITÉ quand il est posé : s'il ne mène à aucun
-    `.mind/`, on se tait. Repli interdit — mesuré le 03/09/2026, une chaîne de
+    `agent` porte le `.mind/` : c'est celui qui parle, et c'est chez lui que
+    vivent le verrou et l'état du briefing. `projet` porte le `.fact/`. En mono
+    les deux sont le même dossier ; en multi, `projet` est deux étages plus
+    haut (`<projet>/agents/<nom>/`). Un projet non migré n'a pas de `.fact/` :
+    `projet` vaut alors None, et tout se lit dans `.mind/`.
+
+    `CLAUDE_PROJECT_DIR` fait AUTORITÉ quand il est posé — et depuis le
+    04/09/2026 on sait qu'il vaut **le dossier de lancement de l'agent**, pas
+    la racine du projet. Repli interdit : mesuré le 03/09/2026, une chaîne de
     repli qui finissait sur `os.getcwd()` briefait le projet du **répertoire
     courant du processus** au lieu de celui demandé, c'est-à-dire injectait le
     cap, les décisions en attente et les droits d'un projet étranger."""
-    declare = os.environ.get("CLAUDE_PROJECT_DIR") or charge.get("cwd")
-    if declare:
-        return _remonte(declare)
-    return _remonte(os.getcwd())
+    declare = (os.environ.get("CLAUDE_PROJECT_DIR") or charge.get("cwd")
+               or os.getcwd())
+    return _remonte(declare, ".mind"), _remonte(declare, ".fact")
 
 
 def entete(texte):
@@ -170,10 +199,17 @@ def droits(r):
     return None, None
 
 
-def a_change(r, depuis):
-    """Un fichier surveillé est-il plus récent que la dernière injection ?"""
-    for p in [r / ".mind" / n for n in MIND] + \
-             [r / ".claude" / "settings.json", r / "CLAUDE.md"]:
+def a_change(r, projet, depuis):
+    """Un fichier surveillé est-il plus récent que la dernière injection ?
+
+    `.fact/` en fait partie : une architecture mise à jour par un autre agent
+    doit rebriefer celui-ci. L'omettre laisserait un agent travailler une
+    session entière sur une frontière qui a bougé."""
+    surveilles = [r / ".mind" / n for n in MIND_ANCIEN] + \
+                 [r / ".claude" / "settings.json", r / "CLAUDE.md"]
+    if projet is not None:
+        surveilles += [projet / ".fact" / n for n in FACT] + [projet / "CLAUDE.md"]
+    for p in surveilles:
         try:
             if p.stat().st_mtime > depuis:
                 return True
@@ -211,17 +247,26 @@ def rends_le_tour(r):
         pass
 
 
-def compose(r):
+def compose(r, projet):
+    """Le briefing. `r` est le dossier de l'agent, `projet` celui qui porte le
+    `.fact/` — le même en mono, None avant migration."""
     l = []
     a = l.append
+    faits = (projet / ".fact") if projet is not None else None
     e = entete(lis(r / ".mind" / "state.md"))
+    # Le `cap` appartient au PROJET, pas à l'agent : à plusieurs, ils visent la
+    # même destination. Avant migration il est encore dans `state.md`.
+    base = entete(lis(faits / "base.md")) if faits else {}
+    cap = base.get("cap") or (e.get("cap") if faits is None else None)
+    ou_cap = ".fact/base.md" if faits else ".mind/state.md"
     j = jours(e.get("maj", ""))
     frais = ("à jour" if j is not None and j <= 7 else
              "TIÈDE" if j is not None and j <= 28 else
              "PÉRIMÉ" if j is not None else "EN-TÊTE ILLISIBLE")
 
-    a("── Briefing d'entrée · %s ─ relu à l'instant, jamais recopié ──" % r.name)
-    a("cap    : %s" % (e.get("cap") or "AUCUN `cap:` déclaré dans .mind/state.md"))
+    titre = r.name if projet is None or projet == r else "%s · %s" % (projet.name, r.name)
+    a("── Briefing d'entrée · %s ─ relu à l'instant, jamais recopié ──" % titre)
+    a("cap    : %s" % (cap or "AUCUN `cap:` déclaré dans %s" % ou_cap))
     a("état   : %s%s · santé %s · jalon : %s"
       % (frais, "" if j is None else " (%d j)" % j,
          e.get("sante") or "—", e.get("jalon") or "—"))
@@ -237,18 +282,28 @@ def compose(r):
     a("")
     a("Avant toute affirmation sur ce projet, ouvrir le fichier qui porte la")
     a("réponse — ces titres disent lequel :")
-    for nom, quoi in (("stack.md", "outils, comptes, accès, versions"),
-                      ("rules.md", "ce qu'on ne franchit pas"),
-                      ("architecture.md", "comment c'est agencé, les frontières")):
-        s = sommaire(r / ".mind" / nom)
+    # Deux formes, deux adresses. Après migration ces fichiers sont dans
+    # `.fact/` — partagés par tous les agents du projet ; avant, dans `.mind/`.
+    ou = faits if faits else (r / ".mind")
+    prefixe = ".fact/" if faits else ".mind/"
+    fichiers = [("base.md", "la nature du projet, et où il va")] if faits else []
+    fichiers += [("stack.md", "outils, comptes, accès, versions"),
+                 ("rules.md", "ce qu'on ne franchit pas"),
+                 ("architecture.md", "comment c'est agencé, les frontières")]
+    for nom, quoi in fichiers:
+        s = sommaire(ou / nom)
         if not s:
-            a("  .mind/%-16s ABSENT — %s : personne ne le sait." % (nom, quoi))
+            a("  %s%-16s ABSENT — %s : personne ne le sait." % (prefixe, nom, quoi))
             continue
         n, titres = s
-        a("  .mind/%-16s %3d l. · %s" % (nom, n, quoi))
+        a("  %s%-16s %3d l. · %s" % (prefixe, nom, n, quoi))
         if titres:
             a("      %s" % " · ".join(titres))
-    a("  .memory/decisions.md   le pourquoi de chaque choix, daté")
+    racine_doc = projet if projet is not None else r
+    if faits and (racine_doc / "docs").is_dir():
+        a("  docs/decisions.md      le pourquoi de chaque choix, daté")
+    else:
+        a("  .memory/decisions.md   le pourquoi de chaque choix, daté")
 
     fichier, d = droits(r)
     a("")
@@ -269,6 +324,42 @@ def compose(r):
     return "\n".join(l)
 
 
+def avertit_racine(projet):
+    """Un `.fact/` sans `.mind/` : on est à la racine d'un projet
+    multi-agents, là où **aucun agent ne travaille**.
+
+    Se taire ici serait la pire sortie possible : elle est identique à celle
+    d'un projet en bonne santé. C'est l'erreur la plus probable de cette
+    architecture — lancer l'agent au mauvais endroit — et jusqu'ici rien ne la
+    signalait."""
+    dossier = projet / "agents"
+    noms = []
+    if dossier.is_dir():
+        try:
+            noms = sorted(d.name for d in dossier.iterdir()
+                          if (d / ".mind").is_dir())
+        except OSError:
+            noms = []
+    l = ["── Briefing · %s ─ TU N'ES DANS AUCUN AGENT ──" % projet.name,
+         "",
+         "Ce dossier porte un `.fact/` mais pas de `.mind/` : c'est la racine",
+         "d'un projet MULTI-AGENTS, et aucun agent n'y travaille. Tu n'as donc",
+         "ni état, ni todo, ni droits appliqués — et `.claude/settings.json`",
+         "d'ici ne s'exécute pas (les réglages ne s'héritent pas).",
+         ""]
+    if noms:
+        l.append("Les agents de ce projet sont dans `agents/` :")
+        for n in noms:
+            l.append("  · %s" % n)
+        l.append("")
+        l.append("Relance la session DANS le dossier de l'agent voulu.")
+    else:
+        l.append("Aucun agent n'est encore déclaré : `agents/<nom>/` est vide")
+        l.append("ou absent. Soit ce projet doit être converti, soit il lui")
+        l.append("manque son premier agent.")
+    return "\n".join(l)
+
+
 def main():
     try:
         charge = json.loads(sys.stdin.read() or "{}")
@@ -276,31 +367,34 @@ def main():
         charge = {}
     evenement = charge.get("hook_event_name") or "SessionStart"
 
-    r = racine(charge)
-    if r is None:                       # pas de `.mind/` : rien à briefer
+    r, projet = racines(charge)
+    if r is None and projet is None:    # aucun harnais : rien à briefer
         rien()
-
-    etat = r / ".claude" / ".briefing.json"
+    # Le verrou et l'état vivent chez l'agent quand il y en a un. Deux agents
+    # d'un même projet ne doivent jamais partager un verrou : le premier
+    # prendrait le tour du second.
+    ancre = r if r is not None else projet
+    etat = ancre / ".claude" / ".briefing.json"
     if evenement == "UserPromptSubmit":
         # Silencieux, sauf si jamais injecté ou si la mémoire a bougé depuis.
         try:
             depuis = float(json.loads(lis(etat) or "{}").get("derniere", 0))
         except (ValueError, TypeError):
             depuis = 0
-        if depuis and not a_change(r, depuis):
+        if depuis and r is not None and not a_change(r, projet, depuis):
             rien()
 
-    if not prends_le_tour(r):           # l'autre interpréteur s'en charge
+    if not prends_le_tour(ancre):       # l'autre interpréteur s'en charge
         rien()
     try:
-        texte = compose(r)
+        texte = compose(r, projet) if r is not None else avertit_racine(projet)
         etat.parent.mkdir(parents=True, exist_ok=True)
         etat.write_text(json.dumps({"derniere": time.time(),
                                     "evenement": evenement}), encoding="utf-8")
     except Exception:
-        rends_le_tour(r)
+        rends_le_tour(ancre)
         rien()
-    rends_le_tour(r)
+    rends_le_tour(ancre)
 
     print(json.dumps({"hookSpecificOutput": {
         "hookEventName": evenement,

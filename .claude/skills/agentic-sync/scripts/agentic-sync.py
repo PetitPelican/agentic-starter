@@ -47,7 +47,7 @@ A_SUPPRIMER = (
 # Fichiers project-owned rappelés à l'utilisateur : jamais touchés par ce script.
 PROJET_POSSEDE = (
     "CLAUDE.md (rôle, règles) -> section Mémoire + règles à réconcilier à la main",
-    ".mind/** et .memory/** (contenu) -> migration de taxonomie via le SKILL, pas ce script",
+    ".mind/** et docs/** (contenu) -> migration de taxonomie via le SKILL, pas ce script",
     "site/site.config.yml, site/_content/** -> conservés ; générer la config si absente",
     "settings.json (permissions + CÂBLAGE des hooks) -> project-owned : vérifier que "
     "briefing (SessionStart + UserPromptSubmit), mind-guard (PreToolUse) et "
@@ -150,28 +150,44 @@ def detecte_ancienne_memoire(projet: pathlib.Path, rap: Rapport):
     if montent and not mind.is_dir():
         rap.main_humaine(
             "MÉMOIRE : taxonomie d'avant le 02/09/2026 — %s sont encore dans "
-            ".memory/ et .mind/ n'existe pas. La migration est un TRI, pas une "
+            "docs/ et .mind/ n'existe pas. La migration est un TRI, pas une "
             "création : ces fichiers MONTENT dans .mind/, decisions.md RESTE, "
             "charter.md se dissout (rôle -> CLAUDE.md, objectif -> champ cap:). "
             "Voir l'étape mémoire du SKILL. Rien migré d'office."
             % ", ".join(montent))
     elif (mem / "charter.md").is_file():
         rap.main_humaine(
-            "MÉMOIRE : .memory/charter.md subsiste. Il a été retiré du template le "
+            "MÉMOIRE : docs/charter.md subsiste. Il a été retiré du template le "
             "03/09/2026 — son contenu se répartit entre le champ cap: de "
-            ".mind/state.md, les frontières de .mind/architecture.md, .mind/stack.md "
+            ".fact/base.md, les frontières de .fact/architecture.md, .fact/stack.md "
             "et CLAUDE.md. À dissoudre à la main.")
+    # Trois formes coexistent depuis le 04/09/2026 : avant migration les cinq
+    # fichiers sont dans `.mind/` ; après, quatre dans `.fact/` et deux dans
+    # `.mind/`, ce dernier pouvant être répété sous `agents/<nom>/`.
+    migre = (projet / ".fact").is_dir()
     if mind.is_dir():
         fichiers = sorted(p.name for p in mind.glob("*.md"))
-        attendus = {"state.md", "todo.md", "stack.md", "architecture.md", "rules.md"}
+        attendus = ({"state.md", "todo.md"} if migre else
+                    {"state.md", "todo.md", "stack.md", "architecture.md", "rules.md"})
         surplus = [f for f in fichiers if f not in attendus]
         manque = sorted(attendus - set(fichiers))
+        combien = "deux (state, todo)" if migre else "EXACTEMENT cinq"
         if surplus:
             rap.main_humaine(".mind/ porte %d fichier(s) de trop (%s) : .mind/ en tient "
-                             "EXACTEMENT cinq, le reste appartient à .memory/."
-                             % (len(surplus), ", ".join(surplus)))
+                             "%s, le reste appartient à .fact/ ou docs/."
+                             % (len(surplus), ", ".join(surplus), combien))
         if manque:
             rap.main_humaine(".mind/ est incomplet : %s manque(nt)." % ", ".join(manque))
+    if migre:
+        attendus = {"base.md", "architecture.md", "stack.md", "rules.md"}
+        vus = {x.name for x in (projet / ".fact").glob("*.md")}
+        if vus - attendus:
+            rap.main_humaine(".fact/ porte %d fichier(s) de trop (%s) : il est FERMÉ à "
+                             "quatre — base, architecture, stack, rules."
+                             % (len(vus - attendus), ", ".join(sorted(vus - attendus))))
+        if attendus - vus:
+            rap.main_humaine(".fact/ est incomplet : %s manque(nt)."
+                             % ", ".join(sorted(attendus - vus)))
 
 
 def main():

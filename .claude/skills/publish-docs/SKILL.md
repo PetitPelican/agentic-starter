@@ -10,7 +10,7 @@ description: >
 # Publish-docs — doc vivante Quarto depuis la mémoire
 
 Une source unique (`site/_content/`) → **site HTML + un livrable Word/PDF par domaine**.
-Le contenu est **généré depuis `.mind/` et `.memory/`** (fichiers **publics** uniquement),
+Le contenu est **généré depuis `.fact/`, `.mind/` et `docs/`** (fichiers **publics** uniquement),
 jamais depuis `operations.md` (privé : hébergement, secrets, dépannage).
 
 ## Pièces
@@ -67,15 +67,15 @@ la mémoire telle quelle : reformuler pour un lecteur externe, factualiser, stru
 
 | Section | Source mémoire | Contenu |
 |---|---|---|
-| `objectifs-perimetre.qmd` | champ `cap:` de `.mind/state.md` + frontières de `.mind/architecture.md` | Résumé, objectif, périmètre (dans/hors), contexte. Mettre `@@EXPORT:<domaine>@@` en tête. |
-| `architecture.qmd` | `.mind/architecture.md` (+ `.memory/data-model.md`) | Vue d'ensemble, composants, flux (schéma `dot`), modèle de données. |
-| `regles-gestion.qmd` *(preset data/generic)* | `.mind/rules.md` | Règles métier & d'accès, contraintes. |
-| `points-ouverts.qmd` | `.memory/decisions.md` + `.mind/todo.md` (`[ ]`, `[>]`, `@<qui>`) | Décisions présentables + points à trancher. |
+| `objectifs-perimetre.qmd` | champ `cap:` de `.fact/base.md` (et sa prose « Où on va ») + frontières de `.fact/architecture.md` | Résumé, objectif, périmètre (dans/hors), contexte. Mettre `@@EXPORT:<domaine>@@` en tête. |
+| `architecture.qmd` | `.fact/architecture.md` (+ `docs/data-model.md`) | Vue d'ensemble, composants, flux (schéma `dot`), modèle de données. |
+| `regles-gestion.qmd` *(preset data/generic)* | `.fact/rules.md` | Règles métier & d'accès, contraintes. |
+| `points-ouverts.qmd` | `docs/decisions.md` + `.mind/todo.md` (`[ ]`, `[>]`, `@<qui>`) | Décisions présentables + points à trancher. |
 | `status/{journal,en-cours,backlog}.qmd` | `.logs/<jour>.md` (journal daté) + `.mind/todo.md` (en cours, backlog) | Transverse, pas par domaine. |
 | `index.qmd` | `cap:` de `.mind/state.md` (tagline) + `CLAUDE.md` (titre) | Accueil : hero `@@TITLE@@`/`@@TAGLINE@@` + `@@CARDS@@`. |
 
 Presets — sections spécifiques en plus du spine :
-- **web** : `stack-conventions.qmd` (← `.mind/stack.md` + `.mind/rules.md` : stack, conventions de code), `fonctionnalites.qmd` (← `.mind/architecture.md` + `.mind/rules.md` : features).
+- **web** : `stack-conventions.qmd` (← `.fact/stack.md` + `.fact/rules.md` : stack, conventions de code), `fonctionnalites.qmd` (← `.fact/architecture.md` + `.fact/rules.md` : features).
 - **api** : `endpoints.qmd` (← architecture : routes), `auth-securite.qmd` (← rules : auth, RBAC — **sans secrets**).
 - **data** : `recette.qmd` (← state/decisions : validation, chiffres — graphes matplotlib possibles).
 
@@ -106,6 +106,6 @@ Pré-condition : l'humain a relu `_content/`. Ne pas déployer une doc non relue
 ## Règles
 
 - Le contenu publiable ne vient QUE des fichiers mémoire **publics** ; `operations.md` est un pare-feu.
-- Éditer la doc = éditer `.memory/` puis `/publish-docs refresh` (ou éditer `_content/` directement pour un ajustement ponctuel) — **jamais** `site/<domaine>/*.qmd` (générés) ni `_site/`.
+- Éditer la doc = éditer `docs/` puis `/publish-docs refresh` (ou éditer `_content/` directement pour un ajustement ponctuel) — **jamais** `site/<domaine>/*.qmd` (générés) ni `_site/`.
 - Après une mise à jour de `.mind/`, proposer `/publish-docs refresh` pour resynchroniser.
 - Ne pas committer/pousser sans accord explicite (le déploiement `ghpages` pousse une branche : confirmer).

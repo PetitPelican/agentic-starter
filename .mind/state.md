@@ -1,6 +1,5 @@
 ---
 maj: YYYY-MM-DD
-cap: [CE_QUE_LE_PROJET_DOIT_PRODUIRE — une phrase : son but, pas son domaine]
 sante: vert
 jalon: [LE_PROCHAIN_CAILLOU — celui qui débloque les autres]
 ---
@@ -8,7 +7,7 @@ jalon: [LE_PROCHAIN_CAILLOU — celui qui débloque les autres]
 # État — [PROJECT_NAME]
 
 > Répond à **« où on en est ? »**. **Public** — alimente la section « Suivi » du
-> site de doc. Le journal figé des choix est dans `.memory/decisions.md` ; les
+> site de doc. Le journal figé des choix est dans `docs/decisions.md` ; les
 > tâches sont dans `todo.md`, à côté.
 
 **L'en-tête ci-dessus est lu par la machine.** `mind-guard` refuse un commit
@@ -22,7 +21,7 @@ s'il est absent ou mal formé, et le tableau de bord range alors le projet en
   l'agent — à ne pas confondre avec une mesure machine.
 - Ce fichier est un **instantané roulant borné**, pas un journal. Le texte
   périmé s'y **remplace** ; ce qui mérite d'être gardé daté va dans
-  `.memory/decisions.md`.
+  `docs/decisions.md`.
 
 ## Phase
 

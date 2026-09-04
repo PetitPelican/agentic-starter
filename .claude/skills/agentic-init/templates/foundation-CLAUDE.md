@@ -23,29 +23,38 @@ Trois couches, à ne pas mélanger :
 C'est le cœur. Ce qui les sépare n'est pas le sujet, c'est la **nature du
 texte**.
 
-**`.mind/`** — les **faits actuels**, en **exactement cinq fichiers**. Le texte
-périmé s'y **remplace**, il ne s'ajoute pas.
+**`.fact/`** — les **faits du projet**, en **exactement quatre fichiers**. Un
+seul écrivain pour tout le projet : un agent n'y écrit qu'à la demande de
+Maxime, et `mind-guard` refuse un commit qui y touche sans ` # fact-ok`. Le
+texte périmé s'y **remplace**, il ne s'ajoute pas.
 
 | Fichier | Répond à |
 |---|---|
-| `state.md` | où on en est |
-| `todo.md` | ce qui reste, et ce qui attend une décision |
+| `base.md` | pourquoi ce projet existe, et où il va (porte le `cap:`) |
 | `stack.md` | avec quoi c'est fait |
 | `architecture.md` | comment c'est agencé, et ses frontières |
 | `rules.md` | ce qu'on ne franchit pas |
 
-**`.memory/`** — les **traces datées**, qui s'accumulent sans plafond :
-`MEMORY.md` (l'index), `decisions.md` (le pourquoi, daté), `operations.md`
+**`.mind/`** — l'**état d'un agent**, en deux fichiers, un jeu par agent : à la
+racine du projet en mono-agent, dans `agents/<nom>/` dès qu'il y en a plusieurs.
+
+| Fichier | Répond à |
+|---|---|
+| `state.md` | où **cet agent** en est (en-tête `maj / sante / jalon`) |
+| `todo.md` | ce qui reste pour lui, et ce qui attend une décision |
+
+**`docs/`** — les **traces datées**, qui s'accumulent sans plafond :
+`README.md` (l'index), `decisions.md` (le pourquoi, daté), `operations.md`
 (🔒 hébergement, secrets, dépannage), `data-model.md` (si data-lourd).
 
 **`.logs/`** — un fichier `<AAAA-MM-JJ>.md` par jour, **append-only**, écrit par
 la machine à chaque commit. Jamais élagué, jamais compressé.
 
 **Le test qui tranche** : une phrase qui commence par « on a décidé de », ou qui
-porte une **date au passé**, va dans `.memory/`. Tout le reste va dans `.mind/`.
+porte une **date au passé**, va dans `docs/`. Tout le reste va dans `.mind/`.
 
 **Jamais un sixième fichier dans `.mind/` sans une décision explicite de
-l'humain.** S'il n'y rentre pas, il est à `.memory/`. Et `.mind/` reste **à la
+l'humain.** S'il n'y rentre pas, il est à `docs/`. Et `.mind/` reste **à la
 racine du dépôt**, jamais à un niveau intermédiaire — l'outillage n'en cherche
 qu'un.
 
@@ -71,7 +80,7 @@ transversaux sur la machine, l'outillage, la méthode.
 Deux conséquences :
 
 - **Elle n'est pas partagée et ne se commite pas.** Ce qui doit survivre à
-  l'agent va dans `.mind/` ou `.memory/`, pas là.
+  l'agent va dans `.mind/` ou `docs/`, pas là.
 - **Elle est indexée par le chemin.** Renommer le dossier d'un projet
   l'orpheline en entier, avec les transcripts, **sans afficher la moindre
   erreur**. Un nom de dossier est une adresse : le vérifier avant tout
@@ -132,7 +141,7 @@ une erreur, un fichier absent, un dépôt sans `.mind/` laissent passer.
 
   **Pourquoi un pointeur ne suffit pas.** Mesuré le 03/09/2026 : un agent a
   répondu de travers sur ses propres accès alors que son contexte de démarrage
-  portait, en gras, « les identifiants sont dans `.mind/stack.md` — le lire
+  portait, en gras, « les identifiants sont dans `.fact/stack.md` — le lire
   avant de conclure qu'un outil manque ». Un pointeur ne se déclenche que si on
   doute déjà ; la panne est de croire qu'on sait. Le briefing ne demande rien,
   il montre.
@@ -237,7 +246,7 @@ Les identifiants de modèles vieillissent ; la règle, elle, ne change pas :
 ## Les frontières
 
 1. **Un projet appartient à son agent.** Ne pas écrire dans le `.mind/` ni le
-   `.memory/` d'un autre projet. La raison n'est pas hiérarchique, elle est
+   `docs/` d'un autre projet. La raison n'est pas hiérarchique, elle est
    mécanique : deux agents qui écrivent dans le même `.mind/` produisent des
    conflits silencieux.
 2. **Ne jamais décider à la place de l'humain.** Un agent ne peut pas en

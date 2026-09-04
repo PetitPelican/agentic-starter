@@ -38,7 +38,28 @@ QUI = re.compile(r"(?:^|(?<=\s))@([A-Za-zÀ-ÿ][\w-]*)\b")
 DEHORS = "dehors"
 CHANTIERS = re.compile(r"^#{1,3}\s*chantiers\b.*$", re.I | re.M)
 
-MIND_ATTENDU = ("state.md", "todo.md", "stack.md", "architecture.md", "rules.md")
+# Trois formes coexistent depuis le 04/09/2026. Ce script embarque sa propre
+# résolution plutôt que d'importer `claude-projets` : il doit tourner sur une
+# machine où l'outillage du poste n'est pas installé.
+MIND_ATTENDU = ("state.md", "todo.md")
+FACT_ATTENDU = ("base.md", "architecture.md", "stack.md", "rules.md")
+MIND_ANCIEN = ("state.md", "todo.md", "stack.md", "architecture.md", "rules.md")
+
+
+def forme(p):
+    """(forme, etats) — `etats` liste les couples (nom d'agent, dossier `.mind/`).
+    En mono le nom vaut None : l'agent EST le projet."""
+    agents = p / "agents"
+    etats = []
+    if agents.is_dir():
+        try:
+            etats = [(d.name, d / ".mind") for d in sorted(agents.iterdir())
+                     if (d / ".mind").is_dir()]
+        except OSError:
+            etats = []
+    if etats:
+        return "multi", etats
+    return ("mono" if (p / ".fact").is_dir() else "ancienne"), [(None, p / ".mind")]
 ANCIENS = ("charter.md", "business.md", "clients.md", "overview.md")
 IGNORE = {"agentic-starter", "claude-starter", "cbascule"}
 
@@ -110,13 +131,29 @@ def fraicheur(maj, aujourdhui):
     return "frais", j
 
 
+def jauge(h):
+    """Le compte de mémoire, dit selon la forme. « 2/5 » sur un projet migré
+    serait un reproche faux : après migration `.mind/` n'en porte que deux."""
+    if h["forme"] == "ancienne":
+        return ".mind %d/5" % len(h["mind"])
+    n = " · %d agent(s)" % len(h["agents"]) if h["agents"] else ""
+    return ".fact %d/4 · .mind %d%s" % (len(h["fact"]), len(h["mind"]), n)
+
+
 def harnais(p: pathlib.Path):
     """L'état du harnais autour de la mémoire — c'est ça, le diagnostic."""
-    mind, mem, cl = p / ".mind", p / ".memory", p / ".claude"
+    f, etats = forme(p)
+    fait, cl = p / ".fact", p / ".claude"
+    # Le dossier de mémoire se déduit de la FORME, jamais de la présence d'un
+    # `docs/` : des projets non migrés en ont déjà un, plein de sorties de build.
+    mem = (p / "docs") if f != "ancienne" else (p / ".memory")
     h = {
         "git": (p / ".git").is_dir(),
         "claude_md": (p / "CLAUDE.md").is_file(),
-        "mind": sorted(f.name for f in mind.glob("*.md")) if mind.is_dir() else [],
+        "forme": f,
+        "agents": [n for n, _ in etats if n],
+        "fact": sorted(x.name for x in fait.glob("*.md")) if fait.is_dir() else [],
+        "mind": sorted({x.name for _, m in etats if m.is_dir() for x in m.glob("*.md")}),
         "memory": mem.is_dir(),
         "hooks": sorted(f.name for f in (cl / "hooks").glob("*.py")) if (cl / "hooks").is_dir() else [],
         "logs": len(list((p / ".logs").glob("*.md"))) if (p / ".logs").is_dir() else 0,
@@ -125,8 +162,12 @@ def harnais(p: pathlib.Path):
                     if (mem / n).is_file()],
         "cable": False,
     }
-    h["manque"] = [n for n in MIND_ATTENDU if n not in h["mind"]]
-    h["surplus"] = [n for n in h["mind"] if n not in MIND_ATTENDU]
+    attendu = MIND_ANCIEN if h["forme"] == "ancienne" else MIND_ATTENDU
+    h["manque"] = [n for n in attendu if n not in h["mind"]]
+    h["surplus"] = [n for n in h["mind"] if n not in attendu]
+    if h["forme"] != "ancienne":
+        h["manque"] += [".fact/" + n for n in FACT_ATTENDU if n not in h["fact"]]
+        h["surplus"] += [".fact/" + n for n in h["fact"] if n not in FACT_ATTENDU]
     # Le CLAUDE.md nomme-t-il `.mind/` ? C'est le seul lien entre le contexte de
     # démarrage de l'agent et sa mémoire. Mesuré le 03/09/2026 : sur huit
     # projets, sept le nommaient — et le seul qui ne le nommait pas est celui
@@ -169,15 +210,23 @@ def harnais(p: pathlib.Path):
 
 def verdict(h):
     """Quoi lancer. Le script ne le lance pas — c'est une décision, pas un geste."""
-    if not h["mind"] and not h["memory"]:
+    if not h["mind"] and not h["memory"] and not h["fact"]:
         return "neuf", "Aucune mémoire : cloner le starter puis `/project-init`."
+    # Un `.fact/` sans aucun `.mind/` n'est pas un projet neuf : c'est un projet
+    # déclaré dont AUCUN agent ne dit où il en est. Le confondre avec « aucune
+    # mémoire » enverrait relancer `/project-init` sur un projet déjà monté.
+    if h["fact"] and not h["mind"]:
+        return "sans-agent", ("`.fact/` est là mais aucun agent ne se déclare : il "
+                              "manque un `.mind/`, à la racine en mono-agent ou dans "
+                              "`agents/<nom>/`.")
     if h["anciens"] or h["montent"]:
         quoi = ", ".join(h["anciens"] + h["montent"])
         return "ancien", ("Taxonomie d'avant le 02/09/2026 (%s) : `/agentic-upgrade`, "
                           "puis le TRI de mémoire à la main." % quoi)
     if h["manque"]:
-        return "incomplet", ("`.mind/` incomplet (%s manque) : `/agentic-upgrade`."
-                             % ", ".join(h["manque"]))
+        ou = "La mémoire du harnais" if h["forme"] != "ancienne" else "`.mind/`"
+        return "incomplet", ("%s est incomplète (%s manque) : `/agentic-upgrade`."
+                             % (ou, ", ".join(h["manque"])))
     if not h["hooks"]:
         return "sans-hooks", "Mémoire en place mais aucun hook : `/agentic-sync`."
     if not h["cable"]:
@@ -187,8 +236,10 @@ def verdict(h):
         return "sans-git", ("Hooks câblés mais pas de dépôt git : ils se déclenchent au "
                             "commit, donc ils sont inertes.")
     if h["surplus"]:
-        return "surplus", ("`.mind/` porte %d fichier(s) de trop (%s) : `.mind/` en tient "
-                           "EXACTEMENT cinq." % (len(h["surplus"]), ", ".join(h["surplus"])))
+        combien = "quatre dans `.fact/` et deux dans `.mind/`" if h["forme"] != "ancienne" \
+                  else "EXACTEMENT cinq dans `.mind/`"
+        return "surplus", ("La mémoire porte %d fichier(s) de trop (%s) : le harnais en "
+                           "tient %s." % (len(h["surplus"]), ", ".join(h["surplus"]), combien))
     if not h["oriente"]:
         return "aveugle", ("Le `CLAUDE.md` ne nomme jamais `.mind/` : rien dans le "
                            "contexte de démarrage ne dit à l'agent que sa mémoire "
@@ -214,8 +265,21 @@ def scanne(racine: pathlib.Path, un_seul=""):
         if un_seul and d.name.lower() != un_seul.lower():
             continue
         h = harnais(d)
-        e = entete(lis(d / ".mind" / "state.md"))
-        t = taches(lis(d / ".mind" / "todo.md"))
+        _f, _etats = forme(d)
+        # Une seule voix : l'état le plus en difficulté, et les tâches réunies.
+        # À plusieurs agents, ce qui attend Maxime ne se range pas par agent.
+        e, t = {}, []
+        for _n, _m in _etats:
+            _e = entete(lis(_m / "state.md"))
+            if _e and (not e or _e.get("sante") == "rouge"):
+                e = _e
+            t += taches(lis(_m / "todo.md"))
+        if _f != "ancienne":
+            _b = entete(lis(d / ".fact" / "base.md"))
+            e = dict(e)
+            e.pop("cap", None)
+            if _b.get("cap"):
+                e["cap"] = _b["cap"]
         etat, jours = fraicheur(e.get("maj", ""), aujourdhui)
         code, conseil = verdict(h)
         out.append({
@@ -234,6 +298,7 @@ def scanne(racine: pathlib.Path, un_seul=""):
 # ── sortie terminal ───────────────────────────────────────────────────────────
 
 SYMBOLE = {"ok": "OK ", "neuf": "NEUF", "ancien": "TRI ", "incomplet": "MANQ",
+           "sans-agent": "AGT?",
            "aveugle": "AVGL", "sans-briefing": "BRIEF", "sans-deny": "DENY",
            "sans-hooks": "HOOK", "non-cable": "CABL", "sans-git": "GIT ",
            "surplus": "6e  "}
@@ -252,10 +317,10 @@ def terminal(projets, racine):
         j = "" if p["jours"] is None else " (%d j)" % p["jours"]
         print("     maj    : %s — %s%s   santé : %s   jalon : %s"
               % (maj, FRAIS[p["fraicheur"]], j, e.get("sante", "—"), (e.get("jalon") or "—")[:44]))
-        print("     harnais: git %s · hooks %d · câblés %s · .mind %d/5 · .logs %d"
+        print("     harnais: git %s · hooks %d · câblés %s · %s · .logs %d"
               % ("oui" if h["git"] else "NON", len(h["hooks"]),
-                 "oui" if h["cable"] else "NON", len(h["mind"]), h["logs"]))
-        print("     contexte: CLAUDE.md→.mind %s · briefing %s · deny %s"
+                 "oui" if h["cable"] else "NON", jauge(h), h["logs"]))
+        print("     contexte: CLAUDE.md→mémoire %s · briefing %s · deny %s"
               % ("oui" if h["oriente"] else "NON",
                  "oui" if h["briefing"] else "NON",
                  len(h["deny"]) if h["deny"] is not None else "—"))
@@ -327,7 +392,8 @@ color:var(--pale);font-size:.8rem}
 """
 
 BADGE = {"ok": ("b-ok", "conforme"), "neuf": ("b-bad", "sans mémoire"),
-         "ancien": ("b-bad", "taxonomie ancienne"), "incomplet": ("b-warn", ".mind incomplet"),
+         "sans-agent": ("b-bad", "aucun agent"),
+         "ancien": ("b-bad", "taxonomie ancienne"), "incomplet": ("b-warn", "mémoire incomplète"),
          "sans-hooks": ("b-warn", "sans hooks"), "non-cable": ("b-warn", "non câblé"),
          "sans-git": ("b-warn", "sans git"), "surplus": ("b-warn", "6e fichier"),
          "aveugle": ("b-bad", "CLAUDE.md aveugle"),
@@ -375,11 +441,11 @@ def page(projets, racine, watch=0):
         non = lambda ok, t: t if ok else '<span class="no">%s</span>' % t
         c.append('<div class="meta">'
                  '<span><b>maj</b> %s</span><span><b>santé</b> %s</span>'
-                 '<span>%s</span><span>%s</span><span>%s</span><span><b>.mind</b> %d/5</span>'
+                 '<span>%s</span><span>%s</span><span>%s</span><span><b>mémoire</b> %s</span>'
                  '<span><b>.logs</b> %d</span></div>'
                  % (e(ch.get("maj") or "—"), e(ch.get("sante") or "—"),
                     non(h["git"], "git"), non(bool(h["hooks"]), "hooks"),
-                    non(h["cable"], "câblés"), len(h["mind"]), h["logs"]))
+                    non(h["cable"], "câblés"), e(jauge(h)), h["logs"]))
         c.append('<div class="meta"><span>%s</span><span>%s</span>'
                  '<span><b>deny</b> %s</span></div>'
                  % (non(h["oriente"], "CLAUDE.md → .mind"),

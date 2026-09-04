@@ -2,7 +2,7 @@
 name: agentic-upgrade
 description: >
   Onboarde un projet existant qui n'a PAS encore le harnais (ou est resté sur
-  l'ancien `.claude/memory/`) : pose `.mind/`, `.memory/`, les skills et les
+  l'ancien `.claude/memory/`) : pose `.mind/`, `docs/`, les skills et les
   hooks, en additif, sans écraser les personnalisations. Pour un projet DÉJÀ au
   harnais qu'on veut remettre au niveau du starter, utiliser `agentic-sync`.
 ---
@@ -18,8 +18,8 @@ description: >
 ## Objectif
 
 - conserver `.claude/` et `CLAUDE.md` tels qu'ils sont
-- poser `.mind/` (les cinq fichiers) et `.memory/`
-- remonter la mémoire de `.claude/memory/` vers `.memory/`
+- poser `.fact/` (les quatre fichiers), `.mind/` (les deux) et `docs/`
+- remonter la mémoire de `.claude/memory/` vers `docs/`
 - poser les deux hooks (`mind-guard`, `journal`) et les skills manquants
 - ne jamais écraser un fichier personnalisé sans le signaler
 
@@ -53,7 +53,7 @@ description: >
    python3 .claude/skills/agentic-upgrade/scripts/agentic-upgrade.py --apply
    ```
 
-   Pour supprimer l'ancien `.claude/memory/` une fois copié vers `.memory/`,
+   Pour supprimer l'ancien `.claude/memory/` une fois copié vers `docs/`,
    ajouter `--remove-legacy-memory`. Sans ce drapeau, l'ancien dossier reste :
    deux copies valent mieux qu'une perte.
 
@@ -74,27 +74,27 @@ l'agent, dans cet ordre :
 
 Les templates `.mind/` viennent d'être posés **vides**, à côté d'une mémoire qui
 existe déjà. Le travail est de faire **monter** le contenu, pas d'en écrire un
-nouveau. Deux dossiers, deux natures : `.mind/` n'énumère que des **faits
-actuels** (le texte périmé s'y **remplace**), `.memory/` garde les **traces
+nouveau. Trois dossiers, trois natures : `.fact/` n'énumère que des **faits
+actuels** (le texte périmé s'y **remplace**), `docs/` garde les **traces
 datées** (ça s'accumule).
 
 | Ancien | → |
 |---|---|
-| `.memory/state.md`, `rules.md`, `architecture.md` | **montent** dans `.mind/` — mêmes noms |
-| `business.md` (règles métier, contraintes) | `.mind/rules.md` |
-| `business.md` (domaine, frontières, rôles) | `.mind/architecture.md` |
-| `business.md` (stack, outils, environnements) | `.mind/stack.md` |
-| `charter.md` | se **dissout** : le but → champ `cap:` de `.mind/state.md`, le rôle → `CLAUDE.md`, les frontières → `.mind/architecture.md` |
-| `clients.md` | se dissout ; ce qui est contractuel ou nominatif va dans `.memory/operations.md` (🔒 privé) |
-| `decisions.md` | **reste** dans `.memory/` — c'est daté, c'est une trace |
-| hébergement / secrets / dépannage, souvent épars | `.memory/operations.md` (🔒 privé) |
-| `data-model.md` | garder si le projet est data-lourd, sinon fondre dans `.mind/architecture.md` et supprimer |
+| `docs/state.md`, `rules.md`, `architecture.md` | **montent** dans `.mind/` — mêmes noms |
+| `business.md` (règles métier, contraintes) | `.fact/rules.md` |
+| `business.md` (domaine, frontières, rôles) | `.fact/architecture.md` |
+| `business.md` (stack, outils, environnements) | `.fact/stack.md` |
+| `charter.md` | se **dissout** : le but → champ `cap:` de `.mind/state.md`, le rôle → `CLAUDE.md`, les frontières → `.fact/architecture.md` |
+| `clients.md` | se dissout ; ce qui est contractuel ou nominatif va dans `docs/operations.md` (🔒 privé) |
+| `decisions.md` | **reste** dans `docs/` — c'est daté, c'est une trace |
+| hébergement / secrets / dépannage, souvent épars | `docs/operations.md` (🔒 privé) |
+| `data-model.md` | garder si le projet est data-lourd, sinon fondre dans `.fact/architecture.md` et supprimer |
 
 Le test qui tranche : une phrase qui commence par « on a décidé de », ou qui
-porte une date au passé, va dans `.memory/`. Tout le reste va dans `.mind/`.
+porte une date au passé, va dans `docs/`. Tout le reste va dans `.mind/`.
 
 **Jamais un sixième fichier dans `.mind/`.** S'il n'y rentre pas, il est à
-`.memory/`.
+`docs/`.
 
 Une fois le contenu remonté, supprimer les originaux — après confirmation de
 l'utilisateur, jamais d'office. Vérifier enfin que `.mind/state.md` porte un
@@ -126,9 +126,9 @@ mémoire **publique**. `operations.md` n'est jamais lu.
 
 - Ne rien supprimer, sauf `.claude/memory/` avec `--remove-legacy-memory`, et
   seulement une fois la copie faite.
-- Ne pas écraser `CLAUDE.md`, `.mind/`, `.memory/`, ni un `settings.json`
+- Ne pas écraser `CLAUDE.md`, `.mind/`, `docs/`, ni un `settings.json`
   existant.
-- Si `.claude/memory/` **et** `.memory/` existent tous les deux, ne pas
+- Si `.claude/memory/` **et** `docs/` existent tous les deux, ne pas
   fusionner automatiquement : signaler, laisser l'utilisateur trancher.
 - Un `.codex/`, un `AGENTS.md`, un `memory-guard.py` trouvés dans le projet sont
   les restes d'une version antérieure du starter, retirés le 03/09/2026 : les

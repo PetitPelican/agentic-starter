@@ -58,13 +58,13 @@ verdict, parce que les suivants n'ont pas de sens tant qu'il n'est pas réglé :
 
 | Verdict | Ce qui a été constaté | Ce qu'il faut lancer |
 |---|---|---|
-| `NEUF` | ni `.mind/` ni `.memory/` | cloner le starter, puis `/project-init` |
+| `NEUF` | ni `.mind/` ni `docs/` | cloner le starter, puis `/project-init` |
 | `TRI` | taxonomie d'avant le 02/09/2026 | `/agentic-upgrade`, puis le tri à la main |
 | `MANQ` | `.mind/` incomplet | `/agentic-upgrade` |
 | `HOOK` | mémoire en place, aucun hook | `/agentic-sync` |
 | `CABL` | hooks copiés, absents de `settings.json` | les câbler à la main |
 | `GIT` | hooks câblés, pas de dépôt git | `git init` — sinon ils sont inertes |
-| `6e` | un sixième fichier dans `.mind/` | le déplacer vers `.memory/` |
+| `6e` | un sixième fichier dans `.mind/` | le déplacer vers `docs/` |
 | `AVGL` | le `CLAUDE.md` ne nomme jamais `.mind/` | y ajouter la table « quelle question → quel fichier » |
 | `BRIEF` | aucun hook `briefing` câblé | `/agentic-sync` |
 | `DENY` | aucune règle `deny` dans `settings.json` | déclarer ce qui doit être refusé |

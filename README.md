@@ -150,8 +150,9 @@ pour que Claude Code voie les nouveaux fichiers.
 L'agent scanne le projet, pose les questions nécessaires, puis configure :
 
 - `CLAUDE.md` — le rôle et les règles, adaptés au type de projet détecté
-- `.mind/` — les cinq fichiers de faits actuels
-- `.memory/` — les traces datées
+- `.fact/` — les quatre fichiers de faits du projet
+- `.mind/` — les deux fichiers d'état de l'agent
+- `docs/` — les traces datées
 - optionnellement, un site de documentation Quarto (`/publish-docs`)
 
 **4. Coder.** La mémoire se tient toute seule : `mind-guard` refuse un commit
@@ -183,7 +184,7 @@ Remove-Item -Recurse -Force "$env:TEMP\claude-starter"
 # recharge (Shift+Ctrl+P → Developer: Reload Window), puis : /agentic-upgrade
 ```
 
-`agentic-upgrade` copie ensuite le reste (`.mind/`, `.memory/`,
+`agentic-upgrade` copie ensuite le reste (`.mind/`, `docs/`,
 `.mcp.json.example`), migre la mémoire d'une ancienne taxonomie le cas échéant,
 et signale tout conflit sans rien écraser.
 
@@ -212,6 +213,12 @@ et signale tout conflit sans rien écraser.
   vues : un diagnostic en terminal (« que faut-il lancer sur ce projet ? ») et
   la page **agentic-team**, un fichier HTML autonome qui s'ouvre d'un
   double-clic, sans serveur. Strictement en lecture.
+- `agentic-clean` — fait le **ménage** : supprime les caches régénérables
+  (`node_modules`, `.next`, `.turbo`, `.venv`, `dist`…) en écrivant en face de
+  chacun la commande qui le reconstruit, et **signale sans y toucher** les
+  résidus de migration mémoire et les fichiers de `docs/` devenus trop gros.
+  Dry-run par défaut. Le ménage n'avait aucun propriétaire avant lui — c'est
+  pour cela qu'il n'avait jamais lieu.
 - `publish-docs` — génère un site Quarto (HTML + Word/PDF) depuis la mémoire
 - `caveman` — mode ultra-compressé, pour réduire les jetons. **Jamais sur
   `.mind/todo.md` ni sur les `.logs/`** : ces fichiers sont relus par un
@@ -266,32 +273,42 @@ fail-open — un journal ne doit jamais empêcher de travailler.
 > **appliquée**. Un journal tenu quand on y pense a des trous exactement les
 > jours chargés — ceux qu'on aurait le plus besoin de relire.
 
-### Mémoire — deux dossiers, deux natures
+### Mémoire — trois dossiers, trois natures
 
-**`.mind/`** n'énumère que des **faits actuels**, en **exactement cinq
-fichiers**. Le texte périmé s'y **remplace**, il ne s'ajoute pas.
+Ce qui les sépare n'est pas le sujet, c'est **le nombre d'écrivains**.
 
-- `.mind/state.md` — en-tête `maj / cap / sante / jalon`, phase, ce qui tient,
-  ce qui ne tient pas _(public)_
+**`.fact/`** — les **faits du projet**, en **exactement quatre fichiers**. Un
+seul écrivain pour tout le projet ; les agents n'y touchent qu'à la demande de
+Maxime. Le texte périmé s'y **remplace**, il ne s'ajoute pas.
+
+- `.fact/base.md` — en-tête `cap`, la nature du projet et où il va _(public)_
+- `.fact/architecture.md` — domaine, frontières, couches, flux, pièges _(public)_
+- `.fact/stack.md` — outils, stack, environnements _(public)_
+- `.fact/rules.md` — règles métier, accès, contraintes _(public)_
+
+**`.mind/`** — l'**état d'un agent**, en deux fichiers. Un jeu par agent : à la
+racine en mono-agent, dans `agents/<nom>/` quand le projet en porte plusieurs.
+
+- `.mind/state.md` — en-tête `maj / sante / jalon`, phase, ce qui tient, ce qui
+  ne tient pas _(public)_
 - `.mind/todo.md` — kanban `[ ]` / `[>]` / `[x]`, `!haut`/`!moyen`/`!bas`,
   `@<qui>` _(public)_
-- `.mind/architecture.md` — domaine, frontières, couches, flux, pièges _(public)_
-- `.mind/stack.md` — outils, stack, environnements _(public)_
-- `.mind/rules.md` — règles métier, accès, contraintes _(public)_
 
-**`.memory/`** garde les **traces datées**, et s'accumule sans plafond.
+**`docs/`** garde les **traces datées** et la matière du domaine, et s'accumule
+sans plafond. C'est le seul des trois qui n'est pas caché : **ce qui est caché
+est du harnais, ce qui est visible est pour Maxime.**
 
-- `.memory/MEMORY.md` — l'index des deux dossiers
-- `.memory/decisions.md` — le journal des décisions, *append-only* _(public curé)_
-- `.memory/operations.md` — 🔒 hébergement, déploiement, secrets, dépannage
+- `docs/README.md` — l'index des deux dossiers
+- `docs/decisions.md` — le journal des décisions, *append-only* _(public curé)_
+- `docs/operations.md` — 🔒 hébergement, déploiement, secrets, dépannage
   _(**privé — jamais publié, jamais cité, jamais résumé**)_
-- `.memory/data-model.md` — modélisation détaillée _(conditionnel : data-lourd)_
+- `docs/data-model.md` — modélisation détaillée _(conditionnel : data-lourd)_
 
 **Le test qui tranche** : une phrase qui commence par « on a décidé de », ou qui
-porte une date au passé, va dans `.memory/`. Tout le reste va dans `.mind/`.
+porte une date au passé, va dans `docs/`. Tout le reste va dans `.mind/`.
 
 **Jamais un sixième fichier dans `.mind/` sans une décision explicite de
-l'humain.** Si un contenu n'y rentre pas, c'est qu'il appartient à `.memory/`.
+l'humain.** Si un contenu n'y rentre pas, c'est qu'il appartient à `docs/`.
 
 **Journal de bord** : le hook `journal` écrit `.logs/<AAAA-MM-JJ>.md` à chaque
 commit — committé, *append-only*, jamais élagué ni compressé. Il répond à une
@@ -403,5 +420,5 @@ hook qu'on n'a pas vu se déclencher n'est pas un hook vérifié.
 ## Contribuer
 
 Tout passe par des **skills**, dans `.claude/skills/`. Garde la mémoire dans
-`.mind/` et `.memory/`, à la racine du projet : elle appartient au projet, pas
+`.mind/` et `docs/`, à la racine du projet : elle appartient au projet, pas
 au harnais.

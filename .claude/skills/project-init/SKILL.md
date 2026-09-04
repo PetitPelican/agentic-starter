@@ -2,7 +2,7 @@
 name: project-init
 description: >
   Initialise la structure claude-starter d'un nouveau projet.
-  Scanne tous types de fichiers, détecte la stack, suggère MCPs/CLIs, pose 6 questions,
+  Scanne tous types de fichiers, détecte la stack, suggère MCPs/CLIs, pose 7 questions (dont mono/multi-agents),
   personnalise CLAUDE.md (rôle, règles adaptées), pré-remplit les fichiers mémoire,
   propose le site de doc (/publish-docs).
   Reprenable : chaque phase teste si elle est déjà faite. `/project-init --verifier` = état, lecture seule.
@@ -60,7 +60,7 @@ laisse plus un dépôt à moitié configuré sans moyen de savoir quoi.
 La vérité vient du **système de fichiers**, jamais d'un fichier d'état — un état
 ment dès qu'on touche au dépôt à la main. Les seules décisions non déductibles
 des fichiers (choix du harnais, refus du site) sont consignées dans
-`.memory/decisions.md`, dont c'est déjà le rôle.
+`docs/decisions.md`, dont c'est déjà le rôle.
 
 **Au lancement, exécute la grille et affiche-la AVANT toute action :**
 
@@ -68,17 +68,17 @@ des fichiers (choix du harnais, refus du site) sont consignées dans
 |---|---|---|
 | 0 — harnais | un seul harnais présent, **ou** choix consigné dans `decisions.md` | reposer la question |
 | 1 — scan | *rien à mémoriser* — toujours refait, c'est peu coûteux | — |
-| 2 — questions | bloc `## Initialisation` dans `.memory/decisions.md` | reposer **uniquement** les questions manquantes |
+| 2 — questions | bloc `## Initialisation` dans `docs/decisions.md` | reposer **uniquement** les questions manquantes |
 | 3 — contexte | plus aucun `[PROJECT_NAME]` dans le(s) fichier(s) de contexte | remplacer ce qui reste |
-| 3 — mémoire | plus aucun `[PROJECT_NAME]` dans `.memory/*.md` | traiter fichier par fichier |
+| 3 — mémoire | plus aucun `[PROJECT_NAME]` dans `docs/*.md` | traiter fichier par fichier |
 | 3 — site | `site/_content/example/` absent, **ou** refus consigné | reproposer |
 | 4 — permissions | `defaultMode: bypassPermissions` dans `.claude/settings.local.json` | l'ajouter |
 
 ```bash
-grep -rl "\[PROJECT_NAME\]" CLAUDE.md .mind/*.md .memory/*.md 2>/dev/null
+grep -rl "\[PROJECT_NAME\]" CLAUDE.md .mind/*.md docs/*.md 2>/dev/null
 ls -d .claude .mind .memory site/_content/example 2>/dev/null
 grep -q "bypassPermissions" .claude/settings.local.json 2>/dev/null && echo "phase 4 ok"
-grep -q "^## Initialisation" .memory/decisions.md 2>/dev/null && echo "phase 2 ok"
+grep -q "^## Initialisation" docs/decisions.md 2>/dev/null && echo "phase 2 ok"
 ```
 
 Affichage attendu :
@@ -86,8 +86,8 @@ Affichage attendu :
 ```
   Phase 0  harnais       ✅ .claude/ seul
   Phase 1  scan          ↻ à refaire (rapide)
-  Phase 2  questions     ✅ 6/6 consignées dans decisions.md
-  Phase 3  contexte      ⏳ CLAUDE.md ok · .memory/ : 4 fichiers avec [PROJECT_NAME]
+  Phase 2  questions     ✅ 7/7 consignées dans decisions.md
+  Phase 3  contexte      ⏳ CLAUDE.md ok · docs/ : 4 fichiers avec [PROJECT_NAME]
   Phase 4  permissions   ⏳ à appliquer
 
   → reprise en phase 3
@@ -115,7 +115,7 @@ Si le projet contient un `.codex/` ou un `AGENTS.md`, c'est un reste de cette
 la liste exacte des chemins et demander une confirmation unique). Ne le recrée
 jamais.
 
-**Consigne le choix** dans `.memory/decisions.md` (bloc `## Initialisation`, créé
+**Consigne le choix** dans `docs/decisions.md` (bloc `## Initialisation`, créé
 s'il manque) : c'est la seule façon de distinguer « les deux harnais retenus »
 de « la phase 0 n'a jamais tourné ».
 
@@ -193,9 +193,34 @@ Synthétise en une liste courte :
 
 ---
 
-## Phase 2 — Questions (6)
+## Phase 2 — Questions (7)
 
 Pose chaque question une par une. Attends la réponse avant de continuer.
+
+**Q0 — Mono ou multi-agents ?** *(à poser EN PREMIER)*
+
+"Ce projet sera-t-il tenu par **un seul agent** ou par **plusieurs** ?"
+
+Elle vient avant les autres parce qu'elle décide de l'emplacement du `.mind/` et
+du chemin d'appel des hooks — `.claude/hooks/…` en mono, `../../.claude/hooks/…`
+depuis un dossier d'agent. La poser après obligerait à défaire ce qui vient
+d'être posé.
+
+**Dire à Maxime que sa réponse n'engage à rien** : la conversion est un appel de
+skill (`/agentic-agents`), il n'y a pas à deviner juste au premier jour.
+
+- **mono** *(défaut)* — un agent, à la racine. C'est la forme de huit projets
+  sur dix, et elle coûte moins cher.
+- **multi** — plusieurs agents, chacun dans `agents/<nom>/`. À choisir seulement
+  si deux lots ont des **rythmes** différents et des **contextes disjoints**
+  (typiquement infra/fiabilité d'un côté, produit/apps de l'autre). Ce n'est pas
+  une réponse à « le projet est gros » : un projet gros mais d'un seul tenant se
+  tient très bien à un agent.
+
+Si **multi**, demander les noms des agents, et vérifier qu'aucun couple ne se
+slugifie pareil (`Splide OPS` / `Splide-OPS` partageraient une seule mémoire
+auto, en silence). Puis poser le harnais en mono et lancer `/agentic-agents`
+plutôt que de bricoler l'arborescence à la main.
 
 **Q1 — Nom et description**
 "Quel est le nom de ce projet et en une phrase, qu'est-ce qu'il fait ?"
@@ -249,13 +274,14 @@ Si un service est détecté mais son MCP n'est pas dans `.mcp.json`, suggère-le
 "Y a-t-il des contraintes spécifiques ?" (plusieurs réponses) :
 `multi-tenant` · `RBAC strict` · `conformité RGPD` · `conformité SOC2` · `budget infra limité` · `pas de git` · `pas d'IA dans le produit` · `déploiement on-premise` · `autre`
 
-**Consigner les six réponses.** Avant de passer en phase 3, écris dans
-`.memory/decisions.md` un bloc :
+**Consigner les sept réponses.** Avant de passer en phase 3, écris dans
+`docs/decisions.md` un bloc :
 
 ```markdown
 ## Initialisation
 
 - harnais : Claude Code
+- Q0 forme : mono | multi (agents : …)
 - Q1 nom / description : …
 - Q2 rôle : …
 - Q3 type de projet : …
@@ -304,13 +330,13 @@ Ne pas inclure une règle si elle ne s'applique pas au projet. Ne pas laisser le
 
 **Section Outils** — remplir avec les outils confirmés en Q5 uniquement. Si MCP suggéré mais pas encore installé, le lister avec la mention `(à installer)`.
 
-### Mémoire — deux dossiers, deux natures
+### Mémoire — trois dossiers, trois natures
 
-`.mind/` n'énumère que des **faits actuels**, en **exactement cinq fichiers** : le texte périmé s'y **remplace**, il ne s'ajoute pas. `.memory/` garde les **traces datées**, et s'accumule sans plafond. Le test qui tranche : une phrase qui commence par « on a décidé de », ou qui porte une date au passé, va dans `.memory/`. **Jamais un sixième fichier dans `.mind/`.**
+La mémoire tient en **trois dossiers, trois natures**, séparés par le nombre d'écrivains. `.fact/` porte les **faits du projet** — exactement quatre fichiers (`base`, `architecture`, `stack`, `rules`), un seul écrivain pour tout le projet, écrits à la demande de Maxime. `.mind/` porte l'**état d'un agent** — `state` et `todo`, un jeu par agent. `docs/` garde les **traces datées** et la matière du domaine, et s'accumule. Les tests qui tranchent : « on a décidé de » ou une date au passé → `docs/` ; ce qui resterait vrai pour un autre agent → `.fact/` ; ce que cet agent seul tient → `.mind/`. **Jamais un cinquième fichier dans `.fact/`, jamais un troisième dans `.mind/`.**
 
-Il n'y a pas de `charter.md` : ce que le projet doit produire tient dans le champ `cap:` de `.mind/state.md`, son rôle dans `CLAUDE.md`, ses frontières dans `.mind/architecture.md`.
+Il n'y a pas de `charter.md` : ce que le projet doit produire tient dans le champ `cap:` de `.mind/state.md`, son rôle dans `CLAUDE.md`, ses frontières dans `.fact/architecture.md`.
 
-#### `.mind/` — les cinq
+#### `.fact/` — les quatre, et `.mind/` — les deux
 
 - `state.md` : remplacer `[PROJECT_NAME]` ; **en-tête obligatoire** `maj` (date du jour, ISO), `cap` (ce que le projet doit produire, une phrase — son but, pas son domaine, depuis Q1), `sante`, `jalon`. C'est ce que lit le tableau de bord : un en-tête cassé fait sortir le projet **sans bruit**.
 - `todo.md` : le dialecte du tableau de bord — `- [ ]` / `- [>]` / `- [x]`, marqueurs `!haut`/`!moyen`/`!bas` et `@<qui>` (dont `@dehors`, réservé). Seul ce qui suit le titre `## Chantiers` est lu. Y poser les premières tâches issues du scan.
@@ -322,14 +348,14 @@ Il n'y a pas de `charter.md` : ce que le projet doit produire tient dans le cham
   - **Stockage** → BDD détectées (Snowflake, PostgreSQL, Supabase, S3, etc.)
   - **API / backend** & **Frontend / dataviz** → frameworks détectés (FastAPI, Next.js, Power BI, Expo…)
   - **Flux de données** → schéma `SOURCE → TRAITEMENT → STOCKAGE → API → FRONTEND` avec les vrais noms
-  - **Modèle de données** → entités principales (détailler dans `.memory/data-model.md` si data-lourd)
+  - **Modèle de données** → entités principales (détailler dans `docs/data-model.md` si data-lourd)
   - Laisser vide les couches non détectées plutôt que de deviner
 
-#### `.memory/` — les traces
+#### `docs/` — les traces
 
 - `decisions.md` : remplacer `[PROJECT_NAME]` + une entrée datée si un choix de stack marquant ressort du scan ; sinon laisser le template
 - `operations.md` : remplacer `[PROJECT_NAME]` + **référencer** (sans valeurs) où vivent les secrets (`.env*.local`, coffre…) et l'hébergement détecté (cloud via CLIs). 🔒 privé — jamais ouvert, jamais cité, jamais résumé, jamais publié.
-- `data-model.md` : conserver **uniquement** si SQL/warehouse ou data pipeline (Q4) ; pré-remplir les couches pertinentes (raw/staging/marts) ; sinon **supprimer** (le modèle vit dans `.mind/architecture.md`)
+- `data-model.md` : conserver **uniquement** si SQL/warehouse ou data pipeline (Q4) ; pré-remplir les couches pertinentes (raw/staging/marts) ; sinon **supprimer** (le modèle vit dans `.fact/architecture.md`)
 - `MEMORY.md` : remplacer `[PROJECT_NAME]` + retirer la ligne `data-model.md` si le fichier a été supprimé
 
 Ne rien laisser en `[PROJECT_NAME]`, et ne jamais poser `.mind/` à un niveau intermédiaire : le tableau de bord n'en cherche qu'un, à la racine du dépôt.

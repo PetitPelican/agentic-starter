@@ -50,7 +50,7 @@ L'utilisateur définit le "quoi" et le "pourquoi", tu décides du "comment" et t
 <!-- Projets paiements -->
 <!-- 7. **Clés restreintes** — `restricted keys` uniquement en prod. Toujours valider la signature des webhooks. -->
 
-1. **Sous-agents** — leur donner un objectif, un périmètre et un **format de retour** explicites. Le mode `/caveman` reste disponible à la demande, mais ne l'impose pas à un sous-agent qui **rapporte des constats** : un rapport relu par un autre agent doit être sans ambiguïté avant d'être court. La compression utile porte sur le contexte d'entrée (voir la stratégie de lecture de `.memory/MEMORY.md`), pas sur le style de sortie.
+1. **Sous-agents** — leur donner un objectif, un périmètre et un **format de retour** explicites. Le mode `/caveman` reste disponible à la demande, mais ne l'impose pas à un sous-agent qui **rapporte des constats** : un rapport relu par un autre agent doit être sans ambiguïté avant d'être court. La compression utile porte sur le contexte d'entrée (voir la stratégie de lecture de `docs/README.md`), pas sur le style de sortie.
 2. **Secrets** — ne jamais écrire un token, clé API ou secret en clair dans un fichier commité. Toujours utiliser une variable d'environnement dans un fichier `.env*.local` (gitignored).
 3. [RÈGLE ADAPTÉE AU PROJET]
 
@@ -58,9 +58,9 @@ L'utilisateur définit le "quoi" et le "pourquoi", tu décides du "comment" et t
 
 ## Mémoire projet
 
-La mémoire tient en **deux dossiers, deux natures**. `.mind/` n'énumère que des **faits actuels**, en exactement cinq fichiers : le texte périmé s'y **remplace**. `.memory/` garde les **traces datées**, et s'accumule. Le test qui tranche : une phrase qui commence par « on a décidé de », ou qui porte une date au passé, va dans `.memory/`.
+La mémoire tient en **trois dossiers, trois natures**, séparés par le nombre d'écrivains. `.fact/` porte les **faits du projet** — exactement quatre fichiers (`base`, `architecture`, `stack`, `rules`), un seul écrivain pour tout le projet, écrits à la demande de Maxime. `.mind/` porte l'**état d'un agent** — `state` et `todo`, un jeu par agent. `docs/` garde les **traces datées** et la matière du domaine, et s'accumule. Les tests qui tranchent : « on a décidé de » ou une date au passé → `docs/` ; ce qui resterait vrai pour un autre agent → `.fact/` ; ce que cet agent seul tient → `.mind/`.
 
-**L'index et la stratégie de lecture — quoi lire en début de session vs à la demande, frontière public/privé — sont dans [`.memory/MEMORY.md`](.memory/MEMORY.md)**, chargé à chaque session : s'y référer, ne pas redupliquer cette carte ici.
+**L'index et la stratégie de lecture — quoi lire en début de session vs à la demande, frontière public/privé — sont dans [`docs/README.md`](docs/README.md)**, chargé à chaque session : s'y référer, ne pas redupliquer cette carte ici.
 
 **Tenir `.mind/` à jour fait partie du travail, pas de la paperasse d'après.** Avant de rendre la main, `state.md` et `todo.md` disent l'état réel. Publier la doc publique : `/publish-docs` (ne lit jamais `operations.md`).
 

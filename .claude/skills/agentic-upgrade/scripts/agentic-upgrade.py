@@ -3,7 +3,7 @@
 
 **Purement additif** : *copy-if-missing*. Ce script n'écrase jamais un fichier
 du projet, et ne supprime rien — sauf `.claude/memory/` sur demande explicite
-(`--remove-legacy-memory`), et seulement une fois `.memory/` en place.
+(`--remove-legacy-memory`), et seulement une fois `docs/` en place.
 
 Ce qu'il fait est MÉCANIQUE : poser les fichiers manquants, signaler ce qu'il
 n'a pas touché. Ce qui demande du JUGEMENT — trier le contenu d'une mémoire
@@ -21,14 +21,14 @@ besoin) : une seule implémentation couvre les deux plateformes.
 
 Projet **déjà** au harnais, à remettre au niveau : c'est `agentic-sync`.
 """
-import argparse, pathlib, shutil, subprocess, tempfile, uuid
+import argparse, json, pathlib, shutil, subprocess, tempfile, uuid
 
 DEPOT = "https://github.com/PetitPelican/claude-starter.git"
 
 # Références obsolètes réécrites dans les fichiers de doc du projet.
-# `.claude/memory/` était l'emplacement de la mémoire avant `.memory/`.
-REECRITURES = ((".claude/memory/", ".memory/"), (".claude/memory", ".memory"))
-CIBLES_REECRITURE = ("README.md", "CLAUDE.md", ".memory/MEMORY.md")
+# `.claude/memory/` était l'emplacement de la mémoire avant `docs/`.
+REECRITURES = ((".claude/memory/", "docs/"), (".claude/memory", ".memory"))
+CIBLES_REECRITURE = ("README.md", "CLAUDE.md", "docs/README.md")
 
 # Restes d'un second harnais, retiré du starter le 03/09/2026. On les SIGNALE :
 # les supprimer est le travail d'`agentic-sync`, pas d'un skill additif.
@@ -36,7 +36,10 @@ RESIDUS = (".codex", "AGENTS.md", ".claude/hooks/memory-guard.py",
            ".claude/skills/memory-update", ".claude/skills/caveman-compress",
            ".claude/skills/audit")
 
-MIND_ATTENDU = ("state.md", "todo.md", "stack.md", "architecture.md", "rules.md")
+# Avant migration ; après, `.mind/` n'en tient que deux et `.fact/` les quatre.
+MIND_ANCIEN = ("state.md", "todo.md", "stack.md", "architecture.md", "rules.md")
+MIND_ATTENDU = ("state.md", "todo.md")
+FACT_ATTENDU = ("base.md", "architecture.md", "stack.md", "rules.md")
 
 # Taxonomie mémoire d'avant le 02/09/2026, telle qu'on la trouve sur le disque.
 ANCIENS_NOMS = ("business.md", "clients.md", "charter.md")
@@ -48,6 +51,41 @@ class Rapport:
     def change(self, m): self.changements.append(m)
     def ignore(self, m): self.ignores.append(m)
     def main_humaine(self, m): self.manuel.append(m)
+
+
+def pose_reglages(src: pathlib.Path, dst: pathlib.Path, rap: Rapport,
+                  appliquer: bool) -> bool:
+    """Pose le `settings.json` du starter, mais **sans son `deny`**.
+
+    Le starter interdit `git commit` et `git push` : c'est sa posture à lui, sur
+    un dépôt neuf dont personne ne commite encore. La transposer telle quelle
+    dans un projet EXISTANT casse deux choses d'un coup — l'agent ne peut plus
+    committer alors qu'il le faisait la veille, et surtout `mind-guard` et
+    `journal`, qui se déclenchent AU commit, deviennent inertes. Le harnais
+    s'installerait en se désactivant lui-même, sans que rien ne le signale.
+
+    On copie donc le CÂBLAGE des hooks — la seule partie qui fait travailler le
+    harnais — et on laisse `deny` vide. Interdire git est une décision qui
+    appartient au projet ; elle se prend après, en connaissance de cause."""
+    if not src.is_file() or dst.exists():
+        return False
+    rap.change("Copier %s (hooks câblés, `deny` laissé VIDE)" % dst)
+    if appliquer:
+        reglages = json.loads(src.read_text(encoding="utf-8"))
+        refuses = reglages.get("permissions", {}).get("deny") or []
+        if refuses:
+            reglages["permissions"]["deny"] = []
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        dst.write_text(json.dumps(reglages, indent=2, ensure_ascii=False) + "\n",
+                       encoding="utf-8")
+    rap.main_humaine(
+        "PERMISSIONS : le settings.json posé a un `deny` VIDE, exprès — le "
+        "harnais ne coupe pas les commits d'un projet qui commitait. Mais un "
+        "droit qui n'est écrit qu'en prose se redemande à chaque session : "
+        "décider maintenant ce que ce projet interdit, et l'y écrire. "
+        "Le starter, lui, refuse `git commit`, `git push` et leurs formes `rtk` "
+        "— à reprendre seulement si ce projet ne doit pas committer seul.")
+    return True
 
 
 def copie_si_absent(src: pathlib.Path, dst: pathlib.Path, rap: Rapport,
@@ -125,15 +163,15 @@ def racine_template(donnee: str, rap: Rapport) -> pathlib.Path:
 
 def memoire(projet: pathlib.Path, template: pathlib.Path, rap: Rapport,
             appliquer: bool, retirer_ancienne: bool):
-    """`.claude/memory/` (ancien emplacement) -> `.memory/`, puis templates."""
+    """`.claude/memory/` (ancien emplacement) -> `docs/`, puis templates."""
     ancienne, mem = projet / ".claude" / "memory", projet / ".memory"
 
     if ancienne.is_dir() and mem.is_dir():
-        rap.main_humaine("MÉMOIRE : .claude/memory/ ET .memory/ existent tous "
+        rap.main_humaine("MÉMOIRE : .claude/memory/ ET docs/ existent tous "
                          "les deux. Fusion manuelle — ce script ne choisit pas "
                          "quelle version d'un fichier fait foi.")
     elif ancienne.is_dir():
-        rap.change("Déplacer .claude/memory/ vers .memory/ (%d fichier(s))"
+        rap.change("Déplacer .claude/memory/ vers docs/ (%d fichier(s))"
                    % len([p for p in ancienne.rglob("*") if p.is_file()]))
         if appliquer:
             shutil.copytree(ancienne, mem)
@@ -158,7 +196,7 @@ def diagnostic_memoire(projet: pathlib.Path, rap: Rapport):
     appartient au projet. On remonte le choix à faire, pas la décision prise.
 
     Regarde les DEUX emplacements, l'ancien et le nouveau. En dry-run rien n'a
-    encore bougé : ne lire que `.memory/` rendrait le diagnostic muet
+    encore bougé : ne lire que `docs/` rendrait le diagnostic muet
     exactement dans le mode où l'on décide s'il faut y aller."""
     mind = projet / ".mind"
     sources = [d for d in (projet / ".memory", projet / ".claude" / "memory")
@@ -170,26 +208,28 @@ def diagnostic_memoire(projet: pathlib.Path, rap: Rapport):
     if trouves:
         rap.main_humaine(
             "MÉMOIRE : taxonomie d'avant le 02/09/2026 — %s. La migration est un "
-            "TRI, pas une création : business.md se scinde entre .mind/rules.md "
-            "et .mind/architecture.md, clients.md et charter.md se dissolvent "
+            "TRI, pas une création : business.md se scinde entre .fact/rules.md "
+            "et .fact/architecture.md, clients.md et charter.md se dissolvent "
             "(rôle -> CLAUDE.md, objectif -> champ cap: de .mind/state.md), "
-            "decisions.md RESTE dans .memory/. Voir l'étape mémoire du SKILL."
+            "decisions.md RESTE dans docs/. Voir l'étape mémoire du SKILL."
             % ", ".join(trouves))
     montent = [n for n in ("state.md", "rules.md", "architecture.md")
                if present(n)]
     if montent:
         rap.main_humaine(
-            "MÉMOIRE : %s sont dans .memory/ alors que ce sont des FAITS "
+            "MÉMOIRE : %s sont dans docs/ alors que ce sont des FAITS "
             "ACTUELS : ils MONTENT dans .mind/. Le template vide vient d'être "
             "posé à côté — c'est le contenu qu'il faut y remonter, puis "
             "supprimer l'original." % ", ".join(montent))
     if mind.is_dir():
-        surplus = [p.name for p in sorted(mind.glob("*.md"))
-                   if p.name not in MIND_ATTENDU]
+        migre = (projet / ".fact").is_dir()
+        attendu = MIND_ATTENDU if migre else MIND_ANCIEN
+        surplus = [p.name for p in sorted(mind.glob("*.md")) if p.name not in attendu]
         if surplus:
             rap.main_humaine(".mind/ porte %d fichier(s) de trop (%s) : .mind/ en "
-                             "tient EXACTEMENT cinq, le reste est à .memory/."
-                             % (len(surplus), ", ".join(surplus)))
+                             "tient %s, le reste est à .fact/ ou docs/."
+                             % (len(surplus), ", ".join(surplus),
+                                "deux" if migre else "EXACTEMENT cinq"))
 
 
 def main():
@@ -199,7 +239,7 @@ def main():
     ap.add_argument("--apply", action="store_true",
                     help="écrire réellement (sinon : dry-run)")
     ap.add_argument("--remove-legacy-memory", action="store_true",
-                    help="supprimer .claude/memory/ une fois copié vers .memory/")
+                    help="supprimer .claude/memory/ une fois copié vers docs/")
     a = ap.parse_args()
 
     projet = pathlib.Path(a.project_root).resolve()
@@ -230,8 +270,8 @@ def main():
     #    déjà, un hook posé en 2. peut n'être branché nulle part — et un hook
     #    qui ne démarre pas ne bloque rien et ne le dit pas.
     reglages = projet / ".claude" / "settings.json"
-    if not copie_si_absent(template / ".claude" / "settings.json", reglages,
-                           rap, a.apply, silencieux=True):
+    if not pose_reglages(template / ".claude" / "settings.json", reglages,
+                         rap, a.apply):
         rap.main_humaine("settings.json existe : vérifier que briefing "
                          "(SessionStart + UserPromptSubmit), mind-guard "
                          "(PreToolUse) et journal (PostToolUse) y sont câblés "

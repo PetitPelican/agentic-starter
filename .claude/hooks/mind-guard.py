@@ -32,10 +32,12 @@ Contrat repris **du parseur**, pas de mémoire (`claude-projets`, v. 03/09/2026)
 Échappatoire : ` # mind-ok` à la fin de la commande.
 **fail-open** : toute erreur, ambiguïté ou dépôt non git laisse passer.
 """
-import sys, json, subprocess, re, datetime
+import sys, json, subprocess, re, datetime, os, pathlib
 
 # --- à ajuster selon le projet -------------------------------------------------
-IGNORED_PREFIXES = (".claude/", ".mind/", ".memory/", ".logs/", "docs/")
+# Relatifs au DOSSIER DE L'AGENT, pas à la racine git : en multi-agents, git
+# renvoie `agents/ios/src/x.ts` et le préfixe du lot est ajouté à l'exécution.
+IGNORED_PREFIXES = (".claude/", ".mind/", ".fact/", "docs/", ".memory/", ".logs/")
 CODE_EXT = (
     ".py", ".sql", ".qmd", ".ipynb", ".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs",
     ".go", ".rs", ".java", ".kt", ".rb", ".php", ".c", ".h", ".hpp", ".cpp", ".cc",
@@ -45,7 +47,11 @@ CODE_EXT = (
 SRC_DIRS = ("src/", "app/", "lib/", "python/", "sql/", "packages/", "services/", "api/")
 # ------------------------------------------------------------------------------
 
+# Deux contrats, selon la forme. Avant migration le `cap` est dans `state.md` ;
+# après, il appartient au projet et vit dans `.fact/base.md` — le réclamer ici
+# ferait échouer tout commit d'un projet correctement migré.
 CHAMPS_REQUIS = ("maj", "cap", "jalon")
+CHAMPS_REQUIS_FACT = ("maj", "sante", "jalon")
 TACHE = re.compile(r"^\s*[-*]\s*\[( |x|X|>|~)\]\s+(.+?)\s*$")
 
 
@@ -67,12 +73,61 @@ def deny(reason):
     sys.exit(0)
 
 
-def is_project_code(f):
-    if any(f.startswith(p) for p in IGNORED_PREFIXES):
+def contexte():
+    """Où l'agent travaille, et sous quelle forme — tout le reste en découle.
+
+    MESURÉ le 04/09/2026 : `git diff --cached --name-only` renvoie des chemins
+    relatifs à la **racine du dépôt**, jamais au dossier courant. Un agent de
+    `agents/ios/` voit donc `agents/ios/.mind/state.md`, et la constante
+    `.mind/state.md` ne matche plus rien : le garde laissait passer TOUT, sans
+    le dire. C'est cette fonction qui répare ça.
+
+    `CLAUDE_PROJECT_DIR` vaut le dossier de lancement de l'agent (mesuré le
+    même jour), donc le lot s'en déduit par différence avec la racine git.
+
+    Renvoie (lot, projet, faits) : le préfixe du lot (« agents/ios/ » ou « »),
+    le préfixe du projet depuis la racine git, et celui de `.fact/` s'il
+    existe — None si le projet n'a pas encore migré.
+    """
+    racine = _git(["rev-parse", "--show-toplevel"])
+    if racine.returncode != 0:
+        return "", "", None
+    racine = pathlib.Path(racine.stdout.strip())
+    depart = os.environ.get("CLAUDE_PROJECT_DIR") or os.getcwd()
+    try:
+        agent = pathlib.Path(depart).resolve()
+        lot = agent.relative_to(racine.resolve())
+    except (OSError, ValueError):
+        return "", "", None
+    lot = "" if str(lot) == "." else str(lot) + "/"
+
+    # Le projet : le premier ancêtre qui porte un `.fact/`, sans jamais sortir
+    # du dépôt. Absent = forme d'avant migration, et tout se lit dans `.mind/`.
+    p = agent
+    while True:
+        if (p / ".fact").is_dir():
+            rel = p.relative_to(racine.resolve())
+            pre = "" if str(rel) == "." else str(rel) + "/"
+            return lot, pre, pre + ".fact/"
+        if p == racine.resolve() or p.parent == p:
+            return lot, lot, None
+        p = p.parent
+
+
+def is_project_code(f, lot="", projet=""):
+    """Deux jeux de préfixes à ignorer, pas un : le harnais de l'AGENT
+    (`agents/ios/.claude/`, `.mind/`) et celui du PROJET (`.fact/`, `docs/`,
+    `.logs/`). N'ignorer que le second laissait compter `agents/ios/.claude/
+    hooks/x.py` pour du code projet, et réclamait une mise à jour d'état pour
+    une modification de harnais."""
+    ignores = tuple(lot + p for p in IGNORED_PREFIXES) + \
+              tuple(projet + p for p in IGNORED_PREFIXES)
+    if any(f.startswith(p) for p in ignores):
         return False
-    if f.startswith("site/") and not f.startswith("site/_content/"):
+    if f.startswith(projet + "site/") and not f.startswith(projet + "site/_content/"):
         return False  # moteur / rendu généré du site de doc
-    return f.endswith(CODE_EXT) or f.startswith(SRC_DIRS)
+    srcs = tuple(lot + d for d in SRC_DIRS) + tuple(projet + d for d in SRC_DIRS)
+    return f.endswith(CODE_EXT) or f.startswith(srcs)
 
 
 def stage(chemin):
@@ -97,7 +152,7 @@ def entete(texte):
     return out
 
 
-def verifie_state(texte):
+def verifie_state(texte, champs=CHAMPS_REQUIS):
     """Reproches, étiquetés par nature.
 
     La distinction n'est pas cosmétique : un fichier ILLISIBLE fait disparaître
@@ -111,7 +166,7 @@ def verifie_state(texte):
                  "le range en « aucune déclaration » et le projet disparaît du "
                  "tableau de bord")]
     maux = []
-    manquants = [c for c in CHAMPS_REQUIS if not d.get(c)]
+    manquants = [c for c in champs if not d.get(c)]
     if manquants:
         maux.append(("structure",
                      "il lui manque " + ", ".join("`%s:`" % c for c in manquants)))
@@ -147,6 +202,10 @@ def main():
     if "mind-ok" in cmd:
         allow()
 
+    lot, projet, faits = contexte()
+    state, todo = lot + ".mind/state.md", lot + ".mind/todo.md"
+    champs = CHAMPS_REQUIS_FACT if faits else CHAMPS_REQUIS
+
     r = _git(["diff", "--cached", "--name-only"])
     if r.returncode != 0:
         allow()  # pas un dépôt git, ou git indisponible -> ne bloque pas
@@ -154,8 +213,25 @@ def main():
     if not fichiers:
         allow()  # `git commit --amend`, commit vide… : rien à juger
 
+    # 0. `.fact/` NE S'ÉCRIT QU'À LA DEMANDE DE MAXIME. C'est la seule mémoire
+    # partagée par tous les agents d'un projet : un agent qui la réécrit depuis
+    # son lot efface ce qu'un autre y avait mis, et personne ne le voit. La
+    # règle existait en prose ; ici elle devient vérifiable, et l'autorisation
+    # laisse une trace dans l'historique.
+    if faits and "fact-ok" not in cmd:
+        touches = [f for f in fichiers if f.startswith(faits)]
+        if touches:
+            deny("mind-guard : ce commit modifie `.fact/` (%s). Ces fichiers "
+                 "sont partagés par TOUS les agents du projet et ne s'écrivent "
+                 "qu'à la demande de Maxime — un agent qui les réécrit depuis "
+                 "son lot efface le travail d'un autre en silence. Si Maxime "
+                 "l'a demandé, ajoute ` # fact-ok` à la fin de la commande : "
+                 "l'autorisation restera dans l'historique."
+                 % (", ".join(touches[:4]) + (", …" if len(touches) > 4 else "")))
+
     # 1. LISIBILITÉ — vaut même sans code, un fichier cassé est le pire cas.
-    for nom, verif in ((".mind/state.md", verifie_state), (".mind/todo.md", verifie_todo)):
+    for nom, verif in ((state, lambda x: verifie_state(x, champs)),
+                       (todo, verifie_todo)):
         if nom in fichiers:
             texte = stage(nom)
             if texte is None:
@@ -170,11 +246,24 @@ def main():
                      % (nom, tete, " ; ".join(m for _, m in maux), nom))
 
     # 2. FRAÎCHEUR — du code sort, la déclaration doit suivre.
-    code = [f for f in fichiers if is_project_code(f)]
+    code = [f for f in fichiers if is_project_code(f, lot, projet)]
     if not code:
         allow()
 
-    absents = [n for n in (".mind/state.md", ".mind/todo.md") if n not in fichiers]
+    # Le projet doit savoir dire où il va. `.fact/base.md` porte le `cap:` —
+    # il a quitté `state.md` le 04/09/2026, parce qu'un projet n'a qu'une
+    # destination même à plusieurs agents.
+    if faits:
+        texte = _git(["show", "HEAD:" + faits + "base.md"])
+        contenu = stage(faits + "base.md") or (texte.stdout if texte.returncode == 0 else "")
+        if not entete(contenu).get("cap"):
+            deny("mind-guard : `%sbase.md` ne porte pas de `cap:` — le tableau "
+                 "de bord n'a alors AUCUNE réponse au niveau du projet, quel "
+                 "que soit le nombre d'agents qui s'y déclarent. Écris-y "
+                 "l'en-tête `---` avec `cap:`, puis recommite (` # fact-ok`, "
+                 "c'est `.fact/`)." % faits)
+
+    absents = [n for n in (state, todo) if n not in fichiers]
     if absents:
         echantillon = ", ".join(code[:5]) + (", …" if len(code) > 5 else "")
         deny(
@@ -182,10 +271,10 @@ def main():
             "Ces deux fichiers sont ce que le tableau de bord lit pour savoir où "
             "en est ce projet et ce qui attend une décision — pas poussés, mais lus "
             "sur le disque : un commit qui les laisse en arrière rend le projet muet. "
-            "Mets `.mind/state.md` (dont le champ `maj:`) et `.mind/todo.md` à "
+            "Mets `%s` (dont le champ `maj:`) et `%s` à "
             "jour, indexe-les, puis recommite. Si la déclaration n'a vraiment pas "
             "à bouger, ajoute ` # mind-ok` à la fin de la commande."
-            % (echantillon, " et ".join("`%s`" % a for a in absents))
+            % (echantillon, " et ".join("`%s`" % a for a in absents), state, todo)
         )
     allow()
 

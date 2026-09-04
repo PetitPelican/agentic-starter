@@ -5,7 +5,7 @@ description: >
   met à jour les fichiers starter-owned (corps des skills, hooks), supprime ce
   que le starter a retiré, applique les renommages, puis réconcilie à la main
   les fichiers project-owned (CLAUDE.md, câblage des hooks, mémoire,
-  site.config.yml). Ne touche jamais au contenu de .mind/, .memory/, _content/
+  site.config.yml). Ne touche jamais au contenu de .mind/, docs/, _content/
   ni aux secrets.
   Trigger: /agentic-sync ou "mets mon projet à jour avec le starter".
 ---
@@ -13,9 +13,37 @@ description: >
 # Agentic Sync
 
 > **Quand l'utiliser** : projet **déjà** au harnais (il a `.claude/skills/`,
-> `.mind/` ou `.memory/`) qu'on veut remettre au niveau du starter courant.
+> `.mind/` ou `docs/`) qu'on veut remettre au niveau du starter courant.
 > Différent d'`agentic-upgrade` (onboarding **additif** d'un projet **sans**
 > harnais) et de `project-init` (nouveau projet).
+
+
+## Migration vers `.fact/` et `docs/` — arrêtée le 04/09/2026
+
+Un projet resté à l'ancienne taxonomie (`.mind/` à cinq fichiers, `.memory/`)
+se migre avec le script fourni, **avant** toute autre resynchronisation :
+
+```bash
+python3 .claude/skills/agentic-sync/scripts/migre-fact-docs.py --project-root . --apply
+```
+
+Il déplace `stack`/`architecture`/`rules` dans `.fact/`, renomme `.memory/` en
+`docs/` et `MEMORY.md` en `README.md`, crée `.fact/base.md` en y transportant le
+`cap:` qui vivait dans `state.md` — et l'en retire, parce que deux sources pour
+un même fait, c'est une qui ment.
+
+**Il ne supprime rien** : `journal.md` (la génération précédente de `.logs/`),
+les sorties de build tombées dans `docs/`, les fichiers de trop — il les nomme
+et laisse le projet trancher. Supprimer du contenu qu'on n'a pas lu est le geste
+qu'on ne rattrape pas.
+
+**Il ne convertit pas en multi-agents** : c'est une autre décision, et elle a
+son propre skill, `/agentic-agents`. La forme mono est le défaut.
+
+Après migration, deux choses restent à la main et le script les rappelle : la
+section mémoire du `CLAUDE.md`, qui parle encore de cinq fichiers, et le tri de
+ce qui traîne dans `docs/`.
+
 
 ## Principe : ownership
 
@@ -24,7 +52,7 @@ description: >
   (`.claude/hooks/**`), suppression de ce qui a été retiré en amont.
   L'écrasement est **voulu** : c'est le but du sync, récupérer la dernière
   logique.
-- **Project-owned → jamais écrasé** : `.mind/**` et `.memory/**` (contenu),
+- **Project-owned → jamais écrasé** : `.mind/**` et `docs/**` (contenu),
   `.claude/settings.json` (permissions **et câblage** des hooks),
   `site/site.config.yml`, `site/_content/**`, `.env*`, `.mcp.json`,
   `settings.local.json`.
@@ -99,9 +127,9 @@ dossiers.
 Comparer avec le `CLAUDE.md` du starter **uniquement sur les sections
 structurelles**, sans toucher au rôle ni aux règles métier du projet :
 
-- **Section « Mémoire projet »** : aligner sur les deux dossiers, deux natures —
-  `.mind/` = faits actuels, exactement cinq fichiers, le texte périmé s'y
-  **remplace** ; `.memory/` = traces datées, ça s'accumule. Et les deux hooks.
+- **Section « Mémoire projet »** : aligner sur les trois dossiers, trois natures —
+  `.fact/` = faits du projet, exactement quatre fichiers, le texte périmé s'y
+  **remplace** ; `docs/` = traces datées, ça s'accumule. Et les deux hooks.
 - **Règles** : si une règle générique a évolué dans le template, proposer le
   diff.
 
@@ -110,7 +138,7 @@ Montrer chaque changement, appliquer après validation.
 ### 5. Mémoire : proposer le CHOIX, ne rien migrer d'office
 
 Le script ne touche jamais au contenu. S'il détecte une taxonomie d'avant le
-02/09/2026 — `state.md`, `rules.md` ou `architecture.md` encore dans `.memory/`,
+02/09/2026 — `state.md`, `rules.md` ou `architecture.md` encore dans `docs/`,
 un `charter.md`, un `business.md` — il le **signale**. Poser le choix :
 
 - **(A) Garder la taxonomie actuelle.** Rien n'est modifié. Limite, et elle est
@@ -118,7 +146,7 @@ un `charter.md`, un `business.md` — il le **signale**. Poser le choix :
   eux, **le projet n'apparaît pas** — pas en erreur, absent.
 - **(B) Migrer.** C'est un **TRI**, pas une création : les fichiers de faits
   actuels **montent** dans `.mind/`, les traces datées **restent** dans
-  `.memory/`.
+  `docs/`.
 
 Ne migrer **que si l'utilisateur choisit (B)**, et de façon **non destructive** :
 copier vers la nouvelle place, faire relire, supprimer les originaux seulement
@@ -126,28 +154,28 @@ après validation explicite.
 
 | Ancien | → |
 |---|---|
-| `.memory/state.md`, `rules.md`, `architecture.md` | **montent** dans `.mind/` |
-| `business.md` (règles, contraintes) | `.mind/rules.md` |
-| `business.md` (domaine, frontières, rôles) | `.mind/architecture.md` |
-| `business.md` (stack, outils, environnements) | `.mind/stack.md` |
-| `charter.md` | se **dissout** : but → champ `cap:` de `.mind/state.md`, rôle → `CLAUDE.md`, frontières → `.mind/architecture.md` |
-| `clients.md`, `overview.md` | se dissolvent ; le contractuel et le nominatif vont dans `.memory/operations.md` (🔒) |
-| `hosting.md`, `troubleshooting.md`, secrets | `.memory/operations.md` (🔒 privé) |
+| `docs/state.md`, `rules.md`, `architecture.md` | **montent** dans `.mind/` |
+| `business.md` (règles, contraintes) | `.fact/rules.md` |
+| `business.md` (domaine, frontières, rôles) | `.fact/architecture.md` |
+| `business.md` (stack, outils, environnements) | `.fact/stack.md` |
+| `charter.md` | se **dissout** : but → champ `cap:` de `.mind/state.md`, rôle → `CLAUDE.md`, frontières → `.fact/architecture.md` |
+| `clients.md`, `overview.md` | se dissolvent ; le contractuel et le nominatif vont dans `docs/operations.md` (🔒) |
+| `hosting.md`, `troubleshooting.md`, secrets | `docs/operations.md` (🔒 privé) |
 | `todo.md` | `.mind/todo.md`, au dialecte du tableau de bord (`[ ]`/`[>]`/`[x]`, `!haut`, `@<qui>`) |
-| `data-model.md` | garder si data-lourd, sinon fondre dans `.mind/architecture.md` |
-| `decisions.md` | **reste** dans `.memory/` — c'est daté |
+| `data-model.md` | garder si data-lourd, sinon fondre dans `.fact/architecture.md` |
+| `decisions.md` | **reste** dans `docs/` — c'est daté |
 
 Le test qui tranche : une phrase qui commence par « on a décidé de », ou qui
-porte une date au passé, va dans `.memory/`. Le reste va dans `.mind/`.
+porte une date au passé, va dans `docs/`. Le reste va dans `.mind/`.
 **Jamais un sixième fichier dans `.mind/`.**
 
 **Multi-domaine** : `.mind/` reste **à la racine du dépôt**, jamais à un niveau
 intermédiaire — c'est ce que lit le tableau de bord, et il n'en cherche qu'un.
-Les sous-périmètres portent leur `CLAUDE.md` et leur `.memory/` ; leur état
+Les sous-périmètres portent leur `CLAUDE.md` et leur `docs/` ; leur état
 remonte dans le `.mind/state.md` de la racine.
 
 Finir en vérifiant que `.mind/state.md` porte un en-tête complet (`maj`, `cap`,
-`sante`, `jalon`, avec `maj` à la date du jour) et que `.memory/MEMORY.md`
+`sante`, `jalon`, avec `maj` à la date du jour) et que `docs/README.md`
 pointe la bonne liste.
 
 ### 6. Site : hardcodé → config-driven (si applicable)
@@ -174,7 +202,7 @@ qu'on n'a pas vu se déclencher n'est pas un hook vérifié.
 
 ## Règles
 
-- Ne jamais écraser `.mind/**`, `.memory/**`, `site/_content/**`,
+- Ne jamais écraser `.mind/**`, `docs/**`, `site/_content/**`,
   `site/site.config.yml`, `.env*`, `settings.json` ni les settings locaux.
 - Ne jamais supprimer de contenu mémoire sans confirmation explicite : migration
   = copie, relecture, puis retrait validé.

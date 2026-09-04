@@ -2,7 +2,7 @@
 
 > Répond à **« avec quoi c'est fait, et où ça tourne ? »**. **Public** — alimente
 > la page « Objectifs & périmètre » du site de doc, avec `architecture.md`.
-> Le *pourquoi* de chaque choix est dans `.memory/decisions.md`.
+> Le *pourquoi* de chaque choix est dans `docs/decisions.md`.
 
 **Vérifier avec `command -v` avant de citer un nom d'outil.** Une table d'outils
 inventés coûte un aller-retour à chaque lecteur, et le lecteur ne sait pas
@@ -28,7 +28,7 @@ place**, pas ce qui est envisagé : une intention se range dans `todo.md`.]
 | Prod | | |
 
 <!-- Identifiants, secrets, comptes de service, IP autorisées : dans
-     .memory/operations.md (privé), jamais ici. -->
+     docs/operations.md (privé), jamais ici. -->
 
 ## Ce qu'on ne referait pas
 

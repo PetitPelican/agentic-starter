@@ -24,7 +24,7 @@ description: >
 ├── cto/                       ← le poste du CTO
 │   ├── CLAUDE.md              son rôle seulement — la méthode, il l'hérite
 │   ├── .claude/               hooks, skills, settings
-│   ├── .mind/  .memory/       sa mémoire : l'atelier, pas les projets
+│   ├── .mind/  docs/       sa mémoire : l'atelier, pas les projets
 │   └── .git/                  sans dépôt, les deux hooks sont inertes
 └── <projet>/                  montés ensuite, un par un
 ```

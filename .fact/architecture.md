@@ -1,7 +1,7 @@
 # Architecture — [PROJECT_NAME]
 
 > Répond à **« c'est quoi, et comment c'est bâti ? »** — le *pourquoi* est dans
-> `.memory/decisions.md`. **Public** — alimente les pages « Objectifs &
+> `docs/decisions.md`. **Public** — alimente les pages « Objectifs &
 > périmètre » et « Architecture » du site de doc.
 >
 > Ce fichier a absorbé l'ancien `charter.md` : sous la nouvelle architecture, le
@@ -56,7 +56,7 @@ contexte métier. De quoi comprendre le projet sans lire le code.]
 ## Modèle de données
 
 _Résumé des entités principales et de leurs relations. Pour un projet
-**data-lourd**, le détail vit dans `.memory/data-model.md` (couches
+**data-lourd**, le détail vit dans `docs/data-model.md` (couches
 raw/staging/marts) et on ne garde ici qu'un renvoi — **jamais les deux** : un
 contenu recopié à deux endroits diverge au premier changement._
 
@@ -70,4 +70,4 @@ règles : c'est la section qui fait gagner le plus de temps à un arrivant._
 - [à remplir]
 
 <!-- Les environnements et la table des outils sont dans stack.md.
-     Identifiants, secrets, IP autorisées : dans .memory/operations.md (privé). -->
+     Identifiants, secrets, IP autorisées : dans docs/operations.md (privé). -->
