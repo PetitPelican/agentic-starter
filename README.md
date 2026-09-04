@@ -130,6 +130,52 @@ Détail dans `/agentic-init`.
 
 ---
 
+## Un agent, ou plusieurs ?
+
+C'est le premier choix, et `/project-init` le pose en **première** question —
+parce qu'il décide de l'emplacement du `.mind/` et du chemin d'appel des hooks.
+
+**La réponse n'engage à rien** : la conversion est un appel de skill
+(`/agentic-agents`), il n'y a pas à deviner juste au premier jour. Défaut :
+mono.
+
+```
+MONO — un agent, à la racine                MULTI — plusieurs agents
+projet/                                     projet/
+  CLAUDE.md      méthode + rôle               CLAUDE.md      le strict commun
+  .fact/         4 fichiers                   .fact/         4 fichiers
+  docs/          les traces                   docs/          les traces
+  .logs/         le journal                   .logs/         le journal
+  .mind/         state · todo                 .claude/hooks/ source unique
+  .claude/       settings + hooks             src/ …
+  src/ …                                      agents/
+                                                ops/  CLAUDE.md · .claude/ · .mind/
+                                                po/   CLAUDE.md · .claude/ · .mind/
+```
+
+**Trois éléments par agent** — son `CLAUDE.md` de rôle, son
+`.claude/settings.json` (hooks + périmètre), son `.mind/`. Rien d'autre :
+`.fact/`, `docs/`, `.logs/` et le code n'appartiennent à aucun agent.
+
+Quand un projet mérite d'être coupé : quand deux lots ont des **rythmes**
+différents et des **contextes disjoints** — typiquement infra/fiabilité d'un
+côté, produit/apps de l'autre. Ce n'est pas une réponse à « le projet est
+gros » : un projet gros mais d'un seul tenant se tient très bien à un agent.
+
+**Trois faits mesurés qui expliquent la forme**, et qu'il vaut mieux ne pas
+redécouvrir :
+
+- le `CLAUDE.md` du projet **est hérité** par un agent de `agents/<nom>/`, mais
+  `.claude/settings.json` **ne l'est pas** : seul celui du dossier de lancement
+  s'exécute. Celui de la racine devient **inerte** — d'où sa suppression, et
+  d'où les hooks appelés en `../../.claude/hooks/…`, en un seul exemplaire ;
+- `CLAUDE_PROJECT_DIR` vaut le dossier de **l'agent**, pas la racine du projet ;
+- une règle `deny` mord si son chemin est **ancré sur le home**
+  (`Edit(~/Agentic/projet/agents/autre/**)`), pas s'il est relatif — et seules
+  les règles `Edit(...)` sont évaluées, `Write(...)` est inerte.
+
+---
+
 ## Quickstart
 
 **1. Cloner dans le projet**
@@ -147,7 +193,9 @@ pour que Claude Code voie les nouveaux fichiers.
 /project-init
 ```
 
-L'agent scanne le projet, pose les questions nécessaires, puis configure :
+L'agent scanne le projet, pose les questions nécessaires — **la première étant
+« un agent, ou plusieurs ? »**, parce qu'elle décide de l'emplacement du
+`.mind/` — puis configure :
 
 - `CLAUDE.md` — le rôle et les règles, adaptés au type de projet détecté
 - `.fact/` — les quatre fichiers de faits du projet
@@ -198,9 +246,14 @@ et signale tout conflit sans rien écraser.
 ### Le harnais
 
 - `CLAUDE.md` — le contexte projet, chargé à chaque session
-- `.claude/settings.json` — permissions et câblage des hooks
+- `.claude/settings.json` — permissions et câblage des hooks. **En multi-agents,
+  celui de la racine n'existe pas** : il ne s'exécuterait pas, et chaque agent
+  porte le sien
+- `.claude/settings.agent.json.example` — le gabarit d'un agent : hooks appelés
+  en `../../`, périmètre en `deny`
 - `.claude/settings.local.json.example` — ajustements locaux, non commités
 - `.claude/skills/` — les skills disponibles
+- `agents/<nom>/` — en multi-agents seulement : trois éléments par agent
 
 ### Skills
 
@@ -208,7 +261,14 @@ et signale tout conflit sans rien écraser.
   et le poste du CTO. Une fois par machine, avant tout projet.
 - `project-init` — initialise un **nouveau** projet
 - `agentic-upgrade` — onboarde un projet existant **sans** harnais (additif)
-- `agentic-sync` — resynchronise un projet déjà au harnais
+- `agentic-sync` — resynchronise un projet déjà au harnais. Porte aussi
+  `scripts/migre-fact-docs.py`, qui fait passer un projet de l'ancienne
+  taxonomie (`.mind/` à cinq fichiers, `.memory/`) à la forme actuelle
+- `agentic-agents` — **convertit** un projet mono en multi, ou lui **ajoute** un
+  agent. Déplace l'état existant dans `agents/<nom>/`, repointe les hooks en
+  `../../`, pose les périmètres en `deny` — et **migre la mémoire auto**, qui
+  est classée par chemin : sans ça l'agent repart sur une adresse vide et
+  `--resume` ne retrouve rien. Ne découpe pas le `CLAUDE.md` : c'est éditorial
 - `agentic-team` — **lit** l'état de tous les projets d'un atelier et en rend deux
   vues : un diagnostic en terminal (« que faut-il lancer sur ce projet ? ») et
   la page **agentic-team**, un fichier HTML autonome qui s'ouvre d'un
@@ -228,11 +288,25 @@ et signale tout conflit sans rien écraser.
 ### Hooks (`.claude/hooks/`)
 
 **`briefing`** — `SessionStart` + `UserPromptSubmit`. Injecte à l'ouverture ce
-qui ne tient pas dans un pointeur : le `cap:`, la fraîcheur de la déclaration,
-les décisions en attente, les **titres de section** de `stack.md`, `rules.md` et
-`architecture.md`, et les règles `deny` réellement appliquées. Il ne recopie
-rien — il relit les fichiers à chaque déclenchement, donc rien ne peut s'y
-périmer.
+qui ne tient pas dans un pointeur : le `cap:` (lu dans `.fact/base.md`), la
+fraîcheur de la déclaration, les décisions en attente, les **titres de section**
+de `base.md`, `stack.md`, `rules.md` et `architecture.md`, et les règles `deny`
+réellement appliquées. Il ne recopie rien — il relit les fichiers à chaque
+déclenchement, donc rien ne peut s'y périmer.
+
+Il fait **deux remontées indépendantes** : le `.mind/` le plus proche est l'état
+de l'agent qui parle, le `.fact/` le plus proche est son projet. En mono c'est
+le même dossier ; en multi, l'agent vit dans `agents/<nom>/` et le `.fact/` est
+deux étages plus haut. C'est la raison pour laquelle les deux dossiers ne
+portent pas le même nom : une remontée s'arrête au **premier** dossier trouvé,
+et deux étages homonymes empêcheraient l'agent de voir jamais l'architecture de
+son projet.
+
+**Le seul cas où il parle sans état** : un `.fact/` trouvé *sans* `.mind/`
+signifie qu'on est à la racine d'un projet multi-agents, là où personne ne
+travaille — l'erreur la plus probable de cette forme. Il avertit et nomme les
+agents disponibles, au lieu de se taire : le silence y produirait exactement la
+sortie d'un projet en bonne santé.
 
 Sur `UserPromptSubmit` il est **silencieux** tant que rien n'a bougé — coût nul
 en régime établi, et il peut donc se poser sur une session **déjà ouverte**.
@@ -240,8 +314,20 @@ en régime établi, et il peut donc se poser sur une session **déjà ouverte**.
 montré : voir le socle, « Les trois hooks ».*
 
 **`mind-guard`** — `PreToolUse` sur `git commit`. Refuse un commit de **code
-projet** qui laisserait `.mind/state.md` ou `.mind/todo.md` en arrière, et
-refuse un commit qui les rendrait **illisibles**.
+projet** qui laisserait `state.md` ou `todo.md` en arrière, et refuse un commit
+qui les rendrait **illisibles**. L'en-tête qu'il exige : `maj`, `sante`,
+`jalon` — le `cap:` a quitté `state.md` pour `.fact/base.md`, parce qu'un projet
+n'a qu'une destination même à plusieurs agents.
+
+**Il connaît le lot.** `git diff --cached` renvoie des chemins relatifs à la
+racine du dépôt : un agent de `agents/ios/` voit `agents/ios/.mind/state.md`.
+Le hook dérive donc son préfixe de `CLAUDE_PROJECT_DIR`. Sans ça il ne garderait
+**plus rien** en multi-agents, et sans le dire.
+
+**Il garde `.fact/`.** Ces fichiers sont partagés par tous les agents du projet
+et ne s'écrivent qu'à la demande de l'humain : un commit qui y touche est refusé
+sans ` # fact-ok` en fin de commande. L'autorisation reste alors dans
+l'historique. C'est ce qui rend la règle vérifiable au lieu d'être une consigne.
 
 Trois choses le distinguent de l'ancien `memory-guard` :
 
@@ -298,7 +384,7 @@ racine en mono-agent, dans `agents/<nom>/` quand le projet en porte plusieurs.
 sans plafond. C'est le seul des trois qui n'est pas caché : **ce qui est caché
 est du harnais, ce qui est visible est pour Maxime.**
 
-- `docs/README.md` — l'index des deux dossiers
+- `docs/README.md` — l'index des trois dossiers
 - `docs/decisions.md` — le journal des décisions, *append-only* _(public curé)_
 - `docs/operations.md` — 🔒 hébergement, déploiement, secrets, dépannage
   _(**privé — jamais publié, jamais cité, jamais résumé**)_

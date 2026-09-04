@@ -60,6 +60,13 @@ L'utilisateur définit le "quoi" et le "pourquoi", tu décides du "comment" et t
 
 La mémoire tient en **trois dossiers, trois natures**, séparés par le nombre d'écrivains. `.fact/` porte les **faits du projet** — exactement quatre fichiers (`base`, `architecture`, `stack`, `rules`), un seul écrivain pour tout le projet, écrits à la demande de Maxime. `.mind/` porte l'**état d'un agent** — `state` et `todo`, un jeu par agent. `docs/` garde les **traces datées** et la matière du domaine, et s'accumule. Les tests qui tranchent : « on a décidé de » ou une date au passé → `docs/` ; ce qui resterait vrai pour un autre agent → `.fact/` ; ce que cet agent seul tient → `.mind/`.
 
+**Si ce projet porte plusieurs agents**, ils vivent dans `agents/<nom>/`, chacun
+avec son `CLAUDE.md` de rôle, son `.claude/settings.json` et son `.mind/`. Ce
+fichier-ci est **hérité** par tous : n'y écrire que ce qui vaut pour chacun. Le
+test — si une phrase resterait vraie pour un autre agent, elle est ici ; sinon
+elle est dans le sien. Le `.fact/`, le `docs/` et le `.logs/` restent à la
+racine, partagés, et ne s'écrivent qu'à la demande de l'humain pour `.fact/`.
+
 **L'index et la stratégie de lecture — quoi lire en début de session vs à la demande, frontière public/privé — sont dans [`docs/README.md`](docs/README.md)**, chargé à chaque session : s'y référer, ne pas redupliquer cette carte ici.
 
 **Tenir `.mind/` à jour fait partie du travail, pas de la paperasse d'après.** Avant de rendre la main, `state.md` et `todo.md` disent l'état réel. Publier la doc publique : `/publish-docs` (ne lit jamais `operations.md`).

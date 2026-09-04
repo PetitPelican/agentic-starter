@@ -128,6 +128,66 @@ Cassé, le projet est classé « aucune déclaration » et **disparaît sans un 
 
 ---
 
+## Un agent, ou plusieurs
+
+Un projet est tenu par **un** agent par défaut. Quand deux lots ont des rythmes
+différents et des contextes disjoints — typiquement infra/fiabilité d'un côté,
+produit/apps de l'autre — il peut en porter plusieurs. Ce n'est pas une réponse
+à « le projet est gros » : un projet gros mais d'un seul tenant se tient très
+bien à un agent.
+
+```
+MONO                              MULTI
+projet/                           projet/
+  .fact/    4 fichiers              .fact/    4 fichiers   ← partagés
+  docs/     les traces              docs/     les traces   ← partagés
+  .logs/    le journal              .logs/    le journal   ← partagé
+  .mind/    state · todo            .claude/hooks/         ← un seul exemplaire
+  .claude/  settings + hooks        agents/
+  src/ …                              ops/  CLAUDE.md · .claude/ · .mind/
+                                      po/   CLAUDE.md · .claude/ · .mind/
+                                    src/ …
+```
+
+**Trois éléments par agent**, jamais plus : son `CLAUDE.md` de rôle, son
+`.claude/settings.json`, son `.mind/`. `.fact/`, `docs/`, `.logs/` et le code
+n'appartiennent à aucun agent.
+
+**Ce qui décide de cette forme**, mesuré le 04/09/2026 :
+
+| | |
+|---|---|
+| `CLAUDE.md` du projet | **hérité** par l'agent de `agents/<nom>/`, en plus du sien |
+| `.claude/settings.json` du projet | **PAS hérité** — seul celui du dossier de lancement s'exécute |
+| `CLAUDE_PROJECT_DIR` | vaut le dossier de **l'agent**, pas la racine du projet |
+
+D'où trois règles qui n'ont l'air de rien :
+
+- **En multi, la racine ne porte pas de `settings.json`.** Il serait inerte, et
+  quelqu'un l'éditerait un jour en croyant agir sur tous les agents. Elle ne
+  garde que `.claude/hooks/`, que les agents appellent en
+  `../../.claude/hooks/…` — un seul exemplaire, aucune copie à propager. Pas de
+  lien symbolique : un clone `core.symlinks=false` le transforme en fichier
+  texte, et les hooks disparaissent sans rien dire.
+- **En mono, l'appel reste `.claude/hooks/…`.** L'agent EST à la racine ;
+  `../../` y désignerait un dossier hors du projet.
+- **Le périmètre d'un agent s'écrit en `deny`, jamais en prose.** Et le chemin
+  doit être **ancré sur le home** — `Edit(~/Agentic/projet/agents/autre/**)` —
+  car un motif relatif ne mord pas. Seules les règles `Edit(...)` sont
+  évaluées : `Write(...)` est inerte.
+
+**Aucune phrase du `CLAUDE.md` du projet n'est reprise dans celui d'un agent.**
+Le test : si elle resterait vraie pour un autre agent, elle est à l'étage
+au-dessus. Le fichier du haut est chargé à chaque démarrage de chaque agent —
+une phrase répétée est payée deux fois par session.
+
+**Deux agents ne portent jamais des noms qui se slugifient pareil** (`X OPS` et
+`X-OPS`) : ils partageraient une seule mémoire auto, en silence.
+
+Conversion et ajout d'agent : `/agentic-agents`. Il migre la mémoire auto, qui
+est classée par chemin — sans ça l'agent repart sur une adresse vide et
+`--resume` ne retrouve rien.
+
 ## Les trois hooks
 
 Ils rendent la règle **appliquée** au lieu d'énoncée. Tous sont **fail-open** :
@@ -145,6 +205,13 @@ une erreur, un fichier absent, un dépôt sans `.mind/` laissent passer.
   avant de conclure qu'un outil manque ». Un pointeur ne se déclenche que si on
   doute déjà ; la panne est de croire qu'on sait. Le briefing ne demande rien,
   il montre.
+
+  **Deux remontées indépendantes** : le `.mind/` le plus proche est l'état de
+  l'agent qui parle, le `.fact/` le plus proche est son projet. C'est pour ça
+  que les deux dossiers ne portent pas le même nom — une remontée s'arrête au
+  premier dossier trouvé. Et quand il trouve un `.fact/` **sans** `.mind/`, il
+  **avertit** : on est à la racine d'un projet multi-agents, là où personne ne
+  travaille. Se taire y produirait exactement la sortie d'un projet sain.
 
   Sur `UserPromptSubmit` il est **silencieux** tant que rien n'a bougé dans
   `.mind/` — coût nul en régime établi. C'est aussi ce qui permet de le poser
@@ -181,6 +248,7 @@ dit pas**.
 | vide ou tout neuf | `/project-init` | crée et remplit |
 | du code, aucun harnais | `/agentic-upgrade` | ajoute seulement, n'écrase rien |
 | harnais présent, en retard | `/agentic-sync` | écrase le harnais, jamais le projet |
+| un agent ne suffit plus | `/agentic-agents` | déplace l'état dans `agents/<nom>/`, ne touche ni `.fact/` ni le code |
 
 **`/agentic-team` passe en premier parce qu'il est le seul à ne rien écrire.** Il lit
 les `.mind/` de tout l'atelier et rend deux choses : un **diagnostic** projet par

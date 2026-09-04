@@ -20,7 +20,10 @@ autorisation explicite de [UTILISATEUR], demandée au cas par cas et tracée dan
 `docs/decisions.md`.
 
 La raison n'est pas le titre, elle est la **propriété** : deux agents qui
-écrivent dans le même `.mind/` produisent des conflits silencieux. La règle vaut
+écrivent dans le même `.mind/` produisent des conflits silencieux — c'est
+d'ailleurs pourquoi un projet à plusieurs agents leur donne un `.mind/` chacun,
+dans `agents/<nom>/`, et garde `.fact/` partagé et écrit à la seule demande de
+l'humain. La règle vaut
 quel que soit ton nom.
 
 ## Ton travail
