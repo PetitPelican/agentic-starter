@@ -77,11 +77,19 @@ def forme(p):
     return ("mono" if (p / ".fact").is_dir() else "ancienne"), []
 
 
-def reglages_agent(source, cible, projet, autres, appliquer, rap):
+def reglages_agent(sources, cible, projet, autres, appliquer, rap):
     """Les hooks n'ont qu'un exemplaire, à la racine ; l'agent les appelle en
     `../../`. Et le périmètre s'écrit en `deny` ANCRÉ SUR LE HOME : mesuré le
-    04/09/2026, un motif relatif (`Edit(../autre/**)`) ne mord pas."""
-    d = json.loads(source.read_text(encoding="utf-8")) if source.is_file() else {}
+    04/09/2026, un motif relatif (`Edit(../autre/**)`) ne mord pas.
+
+    `sources` est une LISTE de candidats, dans l'ordre de préférence : la
+    première qui existe gagne. Avant le 04/09/2026 c'était un chemin unique, et
+    les agents NEUFS pointaient sur un `settings.agent.json.example` que presque
+    aucun projet ne porte — ils naissaient donc sans hook, sans `defaultMode`, et
+    le rapport annonçait quand même « hooks en ../../ ». Relevé sur la
+    conversion réelle de Splide : `Splide PO` est né avec 7 lignes de JSON."""
+    src = next((s for s in sources if s and s.is_file()), None)
+    d = json.loads(src.read_text(encoding="utf-8")) if src else {}
     for blocs in d.get("hooks", {}).values():
         for bloc in blocs:
             for h in bloc.get("hooks", []):
@@ -108,11 +116,40 @@ def reglages_agent(source, cible, projet, autres, appliquer, rap):
         maison = str(projet)
     deny += ["Edit(%s/agents/%s/**)" % (maison, a) for a in autres]
     perm["deny"] = deny
-    rap.append(("+", "%s — hooks en ../../, %d deny de périmètre"
-                % (cible.relative_to(projet), len(autres))))
+    # Dire ce qui s'est passé, pas ce qui était prévu. Un agent sans hook ne
+    # bloque rien et ne le dit pas : c'est exactement le silence qu'on refuse.
+    n_hooks = sum(len(b.get("hooks", [])) for bl in d.get("hooks", {}).values() for b in bl)
+    if n_hooks:
+        rap.append(("+", "%s — %d hooks ancrés sur CLAUDE_PROJECT_DIR, %d deny de périmètre"
+                    % (cible.relative_to(projet), n_hooks, len(autres))))
+    else:
+        rap.append(("⚠", "%s — AUCUN HOOK : pas de briefing, pas de mind-guard, pas de "
+                    "journal. Aucune source lisible parmi %s. À câbler à la main."
+                    % (cible.relative_to(projet), ", ".join(str(s) for s in sources if s))))
     if appliquer:
         cible.parent.mkdir(parents=True, exist_ok=True)
         cible.write_text(json.dumps(d, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def porte_les_non_herites(projet, cible, appliquer, rap):
+    """`.mcp.json` et `settings.local.json` ne remontent PAS depuis un dossier
+    d'agent — mesuré le 04/09/2026 sur la conversion de Splide, horodatage à
+    l'appui : un agent démarré dans `agents/<nom>/` ne voyait AUCUN des serveurs
+    MCP du projet. Pour `Splide OPS`, dont tout le lot est `supabase/` et
+    `packages/db`, ça voulait dire travailler sans le serveur Supabase.
+
+    Ni l'un ni l'autre n'est suivi par git : on copie, on ne déplace pas, et la
+    racine reste la référence pour une session lancée là-bas."""
+    for rel in (".mcp.json", ".claude/settings.local.json"):
+        src = projet / rel
+        if not src.is_file():
+            continue
+        rap.append(("+", "%s/%s — copié depuis la racine (ne s'hérite pas)"
+                    % (cible.relative_to(projet), rel)))
+        if appliquer:
+            dst = cible / rel
+            dst.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(src, dst)
 
 
 def migre_memoire_auto(ancien, neuf, appliquer, rap):
@@ -178,7 +215,7 @@ def main():
             (cible / ".mind").parent.mkdir(parents=True, exist_ok=True)
             if not git(p, "mv", ".mind", "agents/%s/.mind" % premier):
                 shutil.move(str(p / ".mind"), str(cible / ".mind"))
-        reglages_agent(p / ".claude/settings.json", cible / ".claude/settings.json",
+        reglages_agent([p / ".claude/settings.json"], cible / ".claude/settings.json",
                        p, [n for n in noms[1:]], a.apply, rap)
         if (p / ".claude/settings.json").is_file():
             rap.append(("−", ".claude/settings.json de la racine SUPPRIMÉ — il ne "
@@ -186,6 +223,7 @@ def main():
                         "quelqu'un l'éditerait un jour en croyant agir sur tous"))
             if a.apply and not git(p, "rm", "-q", ".claude/settings.json"):
                 (p / ".claude/settings.json").unlink()
+        porte_les_non_herites(p, cible, a.apply, rap)
         migre_memoire_auto(p, cible, a.apply, rap)
         # Le premier agent hérite de l'état, pas d'un rôle : il lui faut le sien,
         # sinon il démarre avec le seul CLAUDE.md du projet et se croit seul.
@@ -193,8 +231,16 @@ def main():
         if a.apply and not (cible / "CLAUDE.md").exists():
             (cible / "CLAUDE.md").write_text(ROLE % premier, encoding="utf-8")
         neufs, tous = noms[1:], noms
+        # D'où les agents NEUFS tirent leurs hooks, dans l'ordre. Le settings du
+        # premier agent vient d'être écrit et porte déjà les chemins ancrés ; la
+        # racine sert de repli en dry-run, où rien n'a encore été supprimé.
+        modeles = [p / ".claude/settings.agent.json.example",
+                   cible / ".claude/settings.json",
+                   p / ".claude/settings.json"]
     else:
         neufs, tous = noms, existants + noms
+        modeles = [p / ".claude/settings.agent.json.example"] + [
+            p / "agents" / e / ".claude/settings.json" for e in existants]
 
     for n in neufs:
         d = p / "agents" / n
@@ -208,9 +254,9 @@ def main():
                 % (datetime.date.today().isoformat(), n), encoding="utf-8")
             (d / ".mind/todo.md").write_text(
                 "# À faire — %s\n\n- [ ] [première tâche de ce lot]\n" % n, encoding="utf-8")
-        reglages_agent(p / ".claude/settings.agent.json.example",
-                       d / ".claude/settings.json", p, [x for x in tous if x != n],
-                       a.apply, rap)
+        reglages_agent(modeles, d / ".claude/settings.json", p,
+                       [x for x in tous if x != n], a.apply, rap)
+        porte_les_non_herites(p, d, a.apply, rap)
 
     reste.append("DÉCOUPER LE CLAUDE.md — la seule étape qui ne s'automatise pas. Le "
                  "commun reste à la racine, le rôle descend dans agents/<nom>/CLAUDE.md. "
