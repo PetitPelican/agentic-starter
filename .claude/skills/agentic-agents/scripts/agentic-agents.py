@@ -85,8 +85,18 @@ def reglages_agent(source, cible, projet, autres, appliquer, rap):
     for blocs in d.get("hooks", {}).values():
         for bloc in blocs:
             for h in bloc.get("hooks", []):
-                if " .claude/hooks/" in h.get("command", ""):
-                    h["command"] = h["command"].replace(" .claude/hooks/", " ../../.claude/hooks/")
+                # Ancré sur CLAUDE_PROJECT_DIR, pas relatif au cwd. Mesuré le
+                # 04/09/2026 : le hook tourne avec le cwd du dossier de lancement
+                # de l'agent, donc un `../../` nu marche aujourd'hui — mais il
+                # dépend d'un cwd qu'on ne contrôle pas, et un hook qui ne part
+                # pas ne bloque rien et ne le dit pas. Le repli `:-.` garde la
+                # forme relative si la variable manque, plutôt qu'un `/.claude/`
+                # absolu qui échouerait en silence.
+                m = re.match(r"^(python3?) \.claude/hooks/(\S+)$", h.get("command", ""))
+                if m:
+                    h["command"] = (
+                        '%s "${CLAUDE_PROJECT_DIR:-.}/../../.claude/hooks/%s"' % (m.group(1), m.group(2))
+                    )
     perm = d.setdefault("permissions", {})
     deny = [x for x in perm.get("deny", []) if "/agents/" not in x]
     # Ancré sur le home QUAND le projet y est. Un `~/` collé devant un chemin
